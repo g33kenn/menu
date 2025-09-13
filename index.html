@@ -1,589 +1,50 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { initializeApp } from 'firebase/app';
-import { 
-    getAuth, 
-    onAuthStateChanged, 
-    GoogleAuthProvider, 
-    signInWithPopup, 
-    signOut 
-} from 'firebase/auth';
-import { 
-    getFirestore, 
-    collection, 
-    query, 
-    onSnapshot,
-    addDoc,
-    updateDoc,
-    deleteDoc,
-    doc
-} from 'firebase/firestore';
-
-
-// --- Helper Components & Icons ---
-
-const Spinner = () => (
-  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-  </svg>
-);
-
-const PlusIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-);
-
-const TrashIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-);
-
-const EditIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
-);
-
-const SaveIcon = () => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
-);
-
-const CancelIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-);
-
-// --- Gemini API Call ---
-const categorizeIngredient = async (ingredientName) => {
-    // In a real app, use an environment variable for the API key.
-    // For this environment, the key is automatically provided.
-    const apiKey = "";
-    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
-
-    const payload = {
-        contents: [{
-            parts: [{
-                text: `Categorize this food item into one of the following exact categories: "Protein", "Side", "Fruit/Vegetable". Do not provide any other explanation or text. Ingredient: "${ingredientName}"`
-            }]
-        }],
-        generationConfig: {
-            responseMimeType: "application/json",
-            responseSchema: {
-                type: "OBJECT",
-                properties: {
-                    category: {
-                        type: "STRING",
-                        enum: ["Protein", "Side", "Fruit/Vegetable"]
-                    }
-                }
-            }
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>What's Cooking?</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for animations or specific overrides */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
         }
-    };
-    
-    try {
-        const response = await fetch(apiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-        if (!response.ok) {
-            console.error("API Error Response:", response.status, await response.text());
-            return "Other";
+        .animate-fade-in {
+            animation: fadeIn 0.3s ease-in-out;
         }
-        const result = await response.json();
-        
-        if (result.candidates && result.candidates[0].content.parts[0].text) {
-             const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
-             return jsonResponse.category || "Other";
-        } else {
-            return "Other";
+        body {
+            background-color: #111827; /* dark:bg-gray-900 */
         }
+    </style>
+</head>
+<body class="font-sans bg-gray-50 dark:bg-gray-900">
 
-    } catch (error) {
-        console.error('Error categorizing ingredient:', error);
-        return "Other";
-    }
-};
+    <div id="app-root"></div>
 
-// --- Ingredient Input Component ---
-const IngredientInput = ({ ingredients, setIngredients, allIngredients = [] }) => {
-    const [inputValue, setInputValue] = useState('');
-    const [loading, setLoading] = useState(false);
-    const [error, setError] = useState('');
-    const [suggestions, setSuggestions] = useState([]);
-    const inputRef = useRef(null);
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            onAuthStateChanged, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            onSnapshot,
+            addDoc,
+            updateDoc,
+            deleteDoc,
+            doc,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-    const categoryColors = {
-        'Protein': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-        'Side': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-        'Fruit/Vegetable': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-        'Other': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    };
-
-    const handleInputChange = (e) => {
-        const value = e.target.value;
-        setInputValue(value);
-        if (error) setError('');
-
-        if (value.trim()) {
-            const currentIngredientNames = ingredients.map(i => i.name.toLowerCase());
-            const filteredSuggestions = allIngredients
-                .filter(ing => 
-                    ing.name.toLowerCase().startsWith(value.toLowerCase()) && 
-                    !currentIngredientNames.includes(ing.name.toLowerCase())
-                )
-                .slice(0, 5); // Limit to 5 suggestions
-            setSuggestions(filteredSuggestions);
-        } else {
-            setSuggestions([]);
-        }
-    };
-
-    const addIngredientFromSuggestion = (ingredient) => {
-        // We only need name and category, id will be new
-        const { name, category } = ingredient;
-        setIngredients(prev => [...prev, { id: Date.now(), name, category }]);
-        setInputValue('');
-        setSuggestions([]);
-    };
-
-    const handleKeyDown = async (e) => {
-        if (e.key === 'Enter' && inputValue.trim()) {
-            e.preventDefault();
-            const newIngredientName = inputValue.trim();
-            
-            // Hide suggestions on Enter
-            setSuggestions([]);
-
-            if (ingredients.some(ing => ing.name.toLowerCase() === newIngredientName.toLowerCase())) {
-                setError(`'${newIngredientName}' is already added.`);
-                setInputValue('');
-                setTimeout(() => inputRef.current?.focus(), 0);
-                return;
-            }
-            setError('');
-
-            const existingIngredient = allIngredients.find(ing => ing.name.toLowerCase() === newIngredientName.toLowerCase());
-            if (existingIngredient) {
-                addIngredientFromSuggestion(existingIngredient);
-                setTimeout(() => inputRef.current?.focus(), 0);
-                return;
-            }
-
-            setLoading(true);
-            const category = await categorizeIngredient(newIngredientName);
-            setIngredients(prev => [...prev, { id: Date.now(), name: newIngredientName, category }]);
-            setInputValue('');
-            setLoading(false);
-            setTimeout(() => inputRef.current?.focus(), 0);
-        }
-    };
-
-    const removeIngredient = (idToRemove) => {
-        setIngredients(prev => prev.filter(ing => ing.id !== idToRemove));
-    };
-
-    return (
-        <div className="relative">
-            <label htmlFor="ingredients" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Ingredients (press Enter to add)
-            </label>
-            <div className="flex flex-wrap gap-2 p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 min-h-[40px]">
-                {ingredients.map(ing => (
-                    <span key={ing.id} className={`flex items-center text-sm font-medium px-2.5 py-1 rounded-full ${categoryColors[ing.category] || categoryColors['Other']}`}>
-                        {ing.name}
-                        <button onClick={() => removeIngredient(ing.id)} className="ml-1.5 font-bold opacity-70 hover:opacity-100 focus:outline-none">
-                            &times;
-                        </button>
-                    </span>
-                ))}
-                <input
-                    ref={inputRef}
-                    type="text"
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onKeyDown={handleKeyDown}
-                    disabled={loading}
-                    placeholder={loading ? "Categorizing..." : "e.g., Chicken, Riz, Tomates"}
-                    className="flex-grow bg-transparent outline-none p-1 dark:text-white dark:placeholder-gray-400"
-                    autoComplete="off"
-                />
-            </div>
-            {suggestions.length > 0 && (
-                <ul className="absolute z-10 w-full bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-md mt-1 shadow-lg max-h-40 overflow-y-auto">
-                    {suggestions.map((sugg, index) => (
-                        <li 
-                            key={index}
-                            onClick={() => {
-                                addIngredientFromSuggestion(sugg);
-                                setTimeout(() => inputRef.current?.focus(), 0);
-                            }}
-                            onMouseDown={(e) => e.preventDefault()} // Prevents input from losing focus on click
-                            className="px-3 py-2 cursor-pointer hover:bg-sky-50 dark:hover:bg-gray-700 dark:text-gray-200"
-                        >
-                            {sugg.name} <span className="text-xs text-gray-500 dark:text-gray-400">({sugg.category})</span>
-                        </li>
-                    ))}
-                </ul>
-            )}
-             {loading && <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">AI at work...</div>}
-             {error && <div className="text-sm text-red-500 dark:text-red-400 mt-1">{error}</div>}
-        </div>
-    );
-};
-
-// --- Dish Card Component ---
-const DishCard = ({ dish, onUpdate, onDelete, allIngredients }) => {
-    const [isEditing, setIsEditing] = useState(false);
-    const [editedName, setEditedName] = useState(dish.name);
-    const [editedIngredients, setEditedIngredients] = useState(dish.ingredients.map((ing, index) => ({ ...ing, id: index })));
-
-    const handleSave = () => {
-        if (!editedName.trim()) return;
-        const finalIngredients = editedIngredients.map(({id, ...rest}) => rest); // remove temp id
-        onUpdate(dish.id, { ...dish, name: editedName, ingredients: finalIngredients });
-        setIsEditing(false);
-    };
-
-    const handleCancel = () => {
-        setEditedName(dish.name);
-        setEditedIngredients(dish.ingredients.map((ing, index) => ({...ing, id: index})));
-        setIsEditing(false);
-    }
-
-    if (isEditing) {
-        return (
-            <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-sky-200 dark:border-sky-900 space-y-3 animate-fade-in">
-                 <input
-                    type="text"
-                    value={editedName}
-                    onChange={(e) => setEditedName(e.target.value)}
-                    className="text-lg font-bold w-full p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-transparent dark:text-white"
-                    placeholder="Dish Name"
-                />
-                <IngredientInput 
-                    ingredients={editedIngredients} 
-                    setIngredients={setEditedIngredients}
-                    allIngredients={allIngredients}
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                    <button onClick={handleSave} className="px-3 py-1 bg-green-500 text-white rounded-md hover:bg-green-600 flex items-center gap-1 text-sm"><SaveIcon/> Save</button>
-                    <button onClick={handleCancel} className="px-3 py-1 bg-gray-500 text-white rounded-md hover:bg-gray-600 flex items-center gap-1 text-sm"><CancelIcon/> Cancel</button>
-                </div>
-            </div>
-        )
-    }
-
-    const categoryColors = {
-        'Protein': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-        'Side': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-        'Fruit/Vegetable': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-        'Other': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    }
-
-    return (
-        <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md space-y-3 transition-shadow hover:shadow-lg">
-            <div className="flex justify-between items-start">
-                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{dish.name}</h3>
-                <div className="flex gap-2">
-                    <button onClick={() => setIsEditing(true)} className="text-gray-500 dark:text-gray-400 hover:text-sky-600 dark:hover:text-sky-400"><EditIcon/></button>
-                    <button onClick={() => onDelete(dish.id)} className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400"><TrashIcon/></button>
-                </div>
-            </div>
-            <div>
-                <h4 className="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Ingredients:</h4>
-                <div className="flex flex-wrap gap-2">
-                    {dish.ingredients.length > 0 ? dish.ingredients.map((ing, index) => (
-                        <span key={index} className={`px-2.5 py-1 text-sm font-medium rounded-full ${categoryColors[ing.category] || categoryColors['Other']}`}>
-                            {ing.name}
-                        </span>
-                    )) : <p className="text-sm text-gray-500 dark:text-gray-400 italic">No ingredients added yet.</p>}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-// --- Database Page ---
-const DatabasePage = ({ dishes, db, userId, appId }) => {
-    const [newDishName, setNewDishName] = useState('');
-    const [newIngredients, setNewIngredients] = useState([]);
-    const [confirmDelete, setConfirmDelete] = useState(null); // Holds dish ID for deletion confirmation
-
-    const allUniqueIngredients = useMemo(() => {
-        const allIngredients = dishes.flatMap(dish => dish.ingredients);
-        // Using Map to get unique ingredients based on name (case-insensitive)
-        const uniqueIngredients = [...new Map(allIngredients.map(item => [item.name.toLowerCase(), item])).values()];
-        uniqueIngredients.sort((a,b) => a.name.localeCompare(b.name));
-        return uniqueIngredients;
-    }, [dishes]);
-
-    const addDish = async () => {
-        if (!newDishName.trim() || !userId) return;
-        const finalIngredients = newIngredients.map(({id, ...rest}) => rest); // remove temp id
-        const newDish = { name: newDishName, ingredients: finalIngredients, createdAt: new Date() };
-        
-        try {
-            const collectionPath = `/artifacts/${appId}/users/${userId}/dishes`;
-            await addDoc(collection(db, collectionPath), newDish);
-            setNewDishName('');
-            setNewIngredients([]);
-        } catch(e) {
-            console.error("Error adding document: ", e);
-        }
-    };
-
-    const updateDish = async (id, updatedDish) => {
-        if (!userId) return;
-        const dishDocRef = doc(db, `/artifacts/${appId}/users/${userId}/dishes`, id);
-        const { id: dishId, ...dishData } = updatedDish; // Firestore doesn't need the id field in the document
-        try {
-            await updateDoc(dishDocRef, dishData);
-        } catch(e) {
-            console.error("Error updating document: ", e);
-        }
-    };
-
-    const handleDeleteClick = (id) => {
-        setConfirmDelete(id);
-    };
-
-    const confirmDeletion = async () => {
-        if(confirmDelete && userId) {
-            try {
-                const dishDocRef = doc(db, `/artifacts/${appId}/users/${userId}/dishes`, confirmDelete);
-                await deleteDoc(dishDocRef);
-                setConfirmDelete(null);
-            } catch(e) {
-                 console.error("Error deleting document: ", e);
-            }
-        }
-    };
-    
-    const cancelDeletion = () => {
-        setConfirmDelete(null);
-    }
-
-    return (
-        <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
-            {/* Delete Confirmation Modal */}
-            {confirmDelete && (
-                <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fade-in">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
-                        <h3 className="text-lg font-bold text-gray-900 dark:text-white">Confirm Deletion</h3>
-                        <p className="text-gray-600 dark:text-gray-300 mt-2 mb-4">Are you sure you want to delete this dish? This action cannot be undone.</p>
-                        <div className="flex justify-end gap-4">
-                            <button onClick={cancelDeletion} className="px-4 py-2 rounded-md bg-gray-200 dark:bg-gray-600 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500 font-medium">Cancel</button>
-                            <button onClick={confirmDeletion} className="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium">Delete</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 space-y-4">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Add a New Dish</h2>
-                <input
-                    type="text"
-                    value={newDishName}
-                    onChange={(e) => setNewDishName(e.target.value)}
-                    placeholder="Dish Name (e.g., Poulet Yassa)"
-                    className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 bg-transparent dark:text-white dark:placeholder-gray-400"
-                />
-                <IngredientInput 
-                    ingredients={newIngredients} 
-                    setIngredients={setNewIngredients}
-                    allIngredients={allUniqueIngredients} 
-                />
-                <button
-                    onClick={addDish}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 transition-colors disabled:bg-sky-300"
-                    disabled={!newDishName.trim()}
-                >
-                    <PlusIcon /> Add Dish to Database
-                </button>
-            </div>
-            <div className="space-y-4">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100">Your Dishes</h2>
-                {dishes.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {dishes.map(dish => (
-                            <DishCard 
-                                key={dish.id} 
-                                dish={dish} 
-                                onUpdate={updateDish} 
-                                onDelete={handleDeleteClick}
-                                allIngredients={allUniqueIngredients}
-                            />
-                        ))}
-                    </div>
-                ) : (
-                    <div className="text-center py-10 px-6 bg-white dark:bg-gray-800 rounded-lg shadow-md">
-                        <p className="text-gray-500 dark:text-gray-400">Your recipe book is empty.</p>
-                        <p className="text-gray-500 dark:text-gray-400">Start by adding your first dish above!</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-// --- Menu Page ---
-const MenuPage = ({ dishes }) => {
-    const [selectedIngredients, setSelectedIngredients] = useState([]);
-
-    const { groupedIngredients, allIngredientsCount } = useMemo(() => {
-        const allIngredients = dishes.flatMap(dish => dish.ingredients);
-        const uniqueIngredients = [...new Map(allIngredients.map(item => [item.name.toLowerCase(), item])).values()];
-        
-        const groups = { 'Protein': [], 'Side': [], 'Fruit/Vegetable': [], 'Other': [] };
-        uniqueIngredients.forEach(ing => {
-            const category = ing.category || 'Other';
-            if (groups[category]) {
-                groups[category].push(ing);
-            } else {
-                 groups['Other'].push(ing);
-            }
-        });
-
-        // Sort ingredients within each category alphabetically
-        for(const category in groups){
-            groups[category].sort((a,b) => a.name.localeCompare(b.name));
-        }
-
-        return { groupedIngredients: groups, allIngredientsCount: uniqueIngredients.length };
-    }, [dishes]);
-    
-    const handleSelectIngredient = (ingredientName) => {
-        setSelectedIngredients(prev =>
-            prev.includes(ingredientName)
-                ? prev.filter(i => i !== ingredientName)
-                : [...prev, ingredientName]
-        );
-    };
-
-    const cookableDishes = useMemo(() => {
-        if (selectedIngredients.length === 0) return [];
-        return dishes.filter(dish =>
-            dish.ingredients.length > 0 && // Ensure the dish has ingredients
-            dish.ingredients.every(requiredIng => selectedIngredients.includes(requiredIng.name))
-        );
-    }, [dishes, selectedIngredients]);
-    
-    const categoryEmoji = {
-        'Protein': '🍗',
-        'Side': '🥖',
-        'Fruit/Vegetable': '🥗',
-        'Other': '🧂',
-    };
-
-    const categoryColors = {
-        'Protein': 'bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300',
-        'Side': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300',
-        'Fruit/Vegetable': 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300',
-        'Other': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-    };
-
-    return (
-        <div className="flex flex-col md:flex-row h-full max-w-7xl mx-auto">
-            {/* Left Panel: Ingredients */}
-            <div className="w-full md:w-1/3 lg:w-1/4 p-4 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-r dark:border-gray-700 overflow-y-auto">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">Your Ingredients</h2>
-                {allIngredientsCount === 0 ? (
-                     <div className="text-center py-10 px-4 text-gray-500 dark:text-gray-400">
-                        No ingredients found in your dish database. Add some dishes first!
-                    </div>
-                ) : (
-                    Object.entries(groupedIngredients).map(([category, ingredients]) => (
-                        ingredients.length > 0 && (
-                            <div key={category} className="mb-6">
-                                <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-3">{categoryEmoji[category]} {category}</h3>
-                                <div className="flex flex-wrap gap-2">
-                                    {ingredients.map(ing => {
-                                        const isSelected = selectedIngredients.includes(ing.name);
-                                        return (
-                                            <button
-                                                key={ing.name}
-                                                onClick={() => handleSelectIngredient(ing.name)}
-                                                className={`px-3 py-1.5 text-sm font-medium rounded-full cursor-pointer transition-colors ${
-                                                    isSelected
-                                                        ? 'bg-sky-600 text-white hover:bg-sky-700'
-                                                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500'
-                                                }`}
-                                            >
-                                                {ing.name}
-                                            </button>
-                                        );
-                                    })}
-                                </div>
-                            </div>
-                        )
-                    ))
-                )}
-            </div>
-            {/* Right Panel: Dishes */}
-            <div className="w-full md:w-2/3 lg:w-3/4 p-6 overflow-y-auto bg-gray-50 dark:bg-gray-900">
-                <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">What you can cook</h2>
-                 {selectedIngredients.length === 0 ? (
-                    <div className="flex items-center justify-center h-full">
-                         <p className="text-gray-500 dark:text-gray-400 text-center">Select ingredients on the left to see what you can make.</p>
-                    </div>
-                 ) : cookableDishes.length > 0 ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                        {cookableDishes.map(dish => (
-                            <div key={dish.id} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md transition-shadow hover:shadow-lg space-y-3">
-                                <h3 className="text-xl font-bold text-gray-800 dark:text-gray-100">{dish.name}</h3>
-                                <div className="flex flex-wrap gap-1.5">
-                                    {dish.ingredients.map((ing, index) => (
-                                        <span key={index} className={`px-2 py-0.5 text-xs font-medium rounded-full ${categoryColors[ing.category] || categoryColors['Other']}`}>
-                                            {ing.name}
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex items-center justify-center h-full">
-                        <p className="text-gray-500 dark:text-gray-400 text-center">No dishes match your selected ingredients.</p>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-};
-
-
-// --- Login Screen ---
-const LoginScreen = ({ signIn }) => (
-    <div className="flex-grow flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-        <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-800 dark:text-white mb-2">🍳 Welcome to What's Cooking?</h1>
-            <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">Sign in to save your recipes and access them anywhere.</p>
-            <button
-                onClick={signIn}
-                className="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-sky-600 hover:bg-sky-700"
-            >
-                <svg className="w-6 h-6 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-                    <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.804 9.69C34.553 5.882 29.563 3.5 24 3.5C11.735 3.5 1.5 13.735 1.5 26S11.735 48.5 24 48.5c12.265 0 22.5-9.235 22.5-22.5c0-1.56-.14-3.09-.389-4.584z"/>
-                    <path fill="#FF3D00" d="M6.306 14.691c2.119-3.954 6.036-6.68 10.694-7.482V3.5C11.735 3.5 1.5 13.735 1.5 26s10.235 22.5 22.5 22.5c2.446 0 4.81-.397 7.027-1.122l-6.22-6.22c-2.31 1.458-5.044 2.342-8.007 2.342c-6.627 0-12-5.373-12-12c0-2.963 1.079-5.697 2.806-7.809z"/>
-                    <path fill="#4CAF50" d="M24 48.5c5.523 0 10.513-2.006 14.389-5.389l-6.734-6.734a12.01 12.01 0 0 1-7.655 2.723c-6.627 0-12-5.373-12-12c0-3.935 1.901-7.438 4.881-9.69L6.306 14.691C3.413 18.062 1.5 22.373 1.5 27s1.913 8.938 5.194 12.309C9.487 44.094 16.273 48.5 24 48.5z"/>
-                </svg>
-                Sign In with Google
-            </button>
-        </div>
-    </div>
-);
-
-
-// --- Main App Component ---
-export default function App() {
-    const [page, setPage] = useState('menu'); // 'database' or 'menu'
-    const [dishes, setDishes] = useState([]);
-    const [user, setUser] = useState(null);
-    const [auth, setAuth] = useState(null);
-    const [db, setDb] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-
-    // Initialize Firebase and Auth state
-    useEffect(() => {
-        // Your web app's Firebase configuration
+        // --- Your Firebase Configuration ---
         const firebaseConfig = {
             apiKey: "AIzaSyCIVdjx95c7v-40t0TmhqWm3467F1BAkHg",
             authDomain: "menu-cf506.firebaseapp.com",
@@ -593,124 +54,288 @@ export default function App() {
             appId: "1:568101794661:web:293d9c6cff80ea6e5d678c"
         };
 
-        // Initialize Firebase
-        try {
-            const app = initializeApp(firebaseConfig);
-            const authInstance = getAuth(app);
-            const dbInstance = getFirestore(app);
-            setAuth(authInstance);
-            setDb(dbInstance);
+        // --- Global State ---
+        let appState = {
+            page: 'menu', // 'database' or 'menu'
+            dishes: [],
+            user: null,
+            loading: true,
+            confirmDeleteId: null,
+        };
 
-            const unsubscribe = onAuthStateChanged(authInstance, (currentUser) => {
-                setUser(currentUser);
-                setLoading(false);
-            });
+        // --- Firebase Initialization ---
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = 'what-is-cooking-app'; // A unique ID for your app's data partition
 
-            return () => unsubscribe();
-        } catch(e) {
-            console.error("Firebase initialization error:", e);
-            setLoading(false);
+        // --- Gemini API Call ---
+        const categorizeIngredient = async (ingredientName) => {
+            const apiKey = "";
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+            const payload = {
+                contents: [{
+                    parts: [{
+                        text: `Categorize this food item into one of the following exact categories: "Protein", "Side", "Fruit/Vegetable". Do not provide any other explanation or text. Ingredient: "${ingredientName}"`
+                    }]
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: { type: "OBJECT", properties: { category: { type: "STRING", enum: ["Protein", "Side", "Fruit/Vegetable"] } } }
+                }
+            };
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) return "Other";
+                const result = await response.json();
+                if (result.candidates && result.candidates[0].content.parts[0].text) {
+                    const jsonResponse = JSON.parse(result.candidates[0].content.parts[0].text);
+                    return jsonResponse.category || "Other";
+                }
+                return "Other";
+            } catch (error) {
+                console.error('Error categorizing ingredient:', error);
+                return "Other";
+            }
+        };
+
+        // --- Main Render Function ---
+        const root = document.getElementById('app-root');
+        function render() {
+            root.innerHTML = App(appState);
+
+            // Re-attach event listeners after every render
+            attachEventListeners();
         }
-    }, []);
+        
+        // --- State Update Function ---
+        function setState(newState) {
+             appState = { ...appState, ...newState };
+             render();
+        }
 
-    // Fetch dishes from Firestore
-    useEffect(() => {
-        if (user && db) {
-            const collectionPath = `/artifacts/${appId}/users/${user.uid}/dishes`;
-            const q = query(collection(db, collectionPath));
+        // --- App Component (Template Literal) ---
+        const App = ({ page, user, loading }) => {
+            if (loading) {
+                return `
+                    <div class="min-h-screen flex items-center justify-center">
+                        <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span class="text-xl text-gray-700 dark:text-gray-300">Loading...</span>
+                    </div>
+                `;
+            }
+
+            return `
+                <div class="font-sans min-h-screen flex flex-col">
+                    <header class="bg-white dark:bg-gray-800 shadow-md dark:border-b dark:border-gray-700 z-10">
+                        <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                            <div class="flex items-center justify-between h-16">
+                                <div class="flex items-center">
+                                    <span class="font-bold text-2xl text-gray-800 dark:text-white">🍳 What's Cooking?</span>
+                                </div>
+                                ${ user ? `
+                                    <div class="flex items-center gap-4">
+                                        <div class="flex gap-2">
+                                            <button data-page="menu" class="page-nav px-4 py-2 text-sm font-medium rounded-md transition-colors ${page === 'menu' ? 'bg-sky-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}">Menu</button>
+                                            <button data-page="database" class="page-nav px-4 py-2 text-sm font-medium rounded-md transition-colors ${page === 'database' ? 'bg-sky-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}">Database</button>
+                                        </div>
+                                        <div class="flex items-center gap-2">
+                                            <img src="${user.photoURL}" alt="${user.displayName}" class="h-8 w-8 rounded-full" />
+                                            <button id="sign-out-btn" class="text-sm text-gray-600 dark:text-gray-300 hover:underline">Sign Out</button>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </nav>
+                    </header>
+                    <main class="flex-grow">
+                        ${ !user ? LoginScreen() : page === 'database' ? DatabasePage() : MenuPage() }
+                    </main>
+                </div>
+            `;
+        };
+
+        const LoginScreen = () => `
+            <div class="flex-grow flex items-center justify-center">
+                <div class="text-center">
+                    <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-2">Welcome to What's Cooking?</h1>
+                    <p class="text-lg text-gray-600 dark:text-gray-300 mb-8">Sign in to save your recipes.</p>
+                    <button id="sign-in-btn" class="inline-flex items-center justify-center px-6 py-3 border border-transparent text-base font-medium rounded-md text-white bg-sky-600 hover:bg-sky-700">
+                         <svg class="w-6 h-6 mr-3" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8c-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039L38.804 9.69C34.553 5.882 29.563 3.5 24 3.5C11.735 3.5 1.5 13.735 1.5 26S11.735 48.5 24 48.5c12.265 0 22.5-9.235 22.5-22.5c0-1.56-.14-3.09-.389-4.584z"/><path fill="#FF3D00" d="M6.306 14.691c2.119-3.954 6.036-6.68 10.694-7.482V3.5C11.735 3.5 1.5 13.735 1.5 26s10.235 22.5 22.5 22.5c2.446 0 4.81-.397 7.027-1.122l-6.22-6.22c-2.31 1.458-5.044 2.342-8.007 2.342c-6.627 0-12-5.373-12-12c0-2.963 1.079-5.697 2.806-7.809z"/><path fill="#4CAF50" d="M24 48.5c5.523 0 10.513-2.006 14.389-5.389l-6.734-6.734a12.01 12.01 0 0 1-7.655 2.723c-6.627 0-12-5.373-12-12c0-3.935 1.901-7.438 4.881-9.69L6.306 14.691C3.413 18.062 1.5 22.373 1.5 27s1.913 8.938 5.194 12.309C9.487 44.094 16.273 48.5 24 48.5z"/></svg>
+                        Sign In with Google
+                    </button>
+                </div>
+            </div>
+        `;
+        
+        // --- Database Page ---
+        // For simplicity, we manage the state of the form inputs directly in the DOM
+        const DatabasePage = () => {
+             // ... logic for DatabasePage (add, update, delete)
+            return `
+                <div class="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+                     ${appState.confirmDeleteId ? DeleteConfirmationModal() : ''}
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 space-y-4">
+                        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Add a New Dish</h2>
+                        <input id="new-dish-name" type="text" placeholder="Dish Name (e.g., Poulet Yassa)" class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-sky-500 bg-transparent dark:text-white">
+                        <div id="ingredient-input-container"></div>
+                        <button id="add-dish-btn" class="w-full flex items-center justify-center gap-2 px-4 py-3 bg-sky-600 text-white font-semibold rounded-lg hover:bg-sky-700 transition-colors">
+                            + Add Dish to Database
+                        </button>
+                    </div>
+                    <div class="space-y-4">
+                         <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Your Dishes</h2>
+                         <div id="dishes-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            ${appState.dishes.length > 0 ? appState.dishes.map(DishCard).join('') : '<p class="text-gray-400">No dishes yet.</p>'}
+                         </div>
+                    </div>
+                </div>
+            `;
+        };
+
+        const DishCard = (dish) => `
+            <div class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md space-y-3">
+                <div class="flex justify-between items-start">
+                    <h3 class="text-xl font-bold text-gray-800 dark:text-gray-100">${dish.name}</h3>
+                    <div class="flex gap-2">
+                        <button class="delete-dish-btn" data-id="${dish.id}">🗑️</button>
+                    </div>
+                </div>
+                <div>
+                     <h4 class="text-sm font-semibold text-gray-600 dark:text-gray-300 mb-1">Ingredients:</h4>
+                     <div class="flex flex-wrap gap-2">
+                        ${dish.ingredients.map(ing => `<span class="px-2.5 py-1 text-sm font-medium rounded-full bg-gray-700 text-gray-300">${ing.name}</span>`).join('')}
+                     </div>
+                </div>
+            </div>
+        `;
+        
+         const DeleteConfirmationModal = () => `
+            <div class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 animate-fade-in">
+                <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Confirm Deletion</h3>
+                    <p class="text-gray-600 dark:text-gray-300 mt-2 mb-4">Are you sure you want to delete this dish?</p>
+                    <div class="flex justify-end gap-4">
+                        <button id="cancel-delete-btn" class="px-4 py-2 rounded-md bg-gray-600 text-gray-200 hover:bg-gray-500 font-medium">Cancel</button>
+                        <button id="confirm-delete-btn" class="px-4 py-2 rounded-md bg-red-600 text-white hover:bg-red-700 font-medium">Delete</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        // --- Menu Page ---
+        const MenuPage = () => {
+             // ... logic for MenuPage
+            return `<p class="text-white p-6">Menu Page (Content to be implemented)</p>`;
+        };
+
+
+        // --- Event Listeners ---
+        function attachEventListeners() {
+            // Auth Buttons
+            const signInBtn = document.getElementById('sign-in-btn');
+            if(signInBtn) signInBtn.addEventListener('click', signInWithGoogle);
+
+            const signOutBtn = document.getElementById('sign-out-btn');
+            if(signOutBtn) signOutBtn.addEventListener('click', handleSignOut);
+
+            // Page Navigation
+            document.querySelectorAll('.page-nav').forEach(btn => {
+                btn.addEventListener('click', (e) => setState({ page: e.target.dataset.page }));
+            });
             
-            const unsubscribe = onSnapshot(q, (querySnapshot) => {
-                const dishesData = [];
-                querySnapshot.forEach((doc) => {
-                    dishesData.push({ id: doc.id, ...doc.data() });
+            // Database Page specific listeners
+            if(appState.page === 'database'){
+                const addDishBtn = document.getElementById('add-dish-btn');
+                if(addDishBtn) addDishBtn.addEventListener('click', handleAddDish);
+                
+                document.querySelectorAll('.delete-dish-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        const id = e.currentTarget.dataset.id;
+                        setState({ confirmDeleteId: id });
+                    });
                 });
-                // Sort by creation date, newest first
-                dishesData.sort((a, b) => b.createdAt?.toMillis() - a.createdAt?.toMillis());
-                setDishes(dishesData);
-            }, (error) => {
-                console.error("Error fetching dishes:", error);
-            });
 
-            return () => unsubscribe();
-        } else {
-            setDishes([]); // Clear dishes if user logs out
+                const confirmDeleteBtn = document.getElementById('confirm-delete-btn');
+                if(confirmDeleteBtn) confirmDeleteBtn.addEventListener('click', handleConfirmDelete);
+
+                const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+                if(cancelDeleteBtn) cancelDeleteBtn.addEventListener('click', () => setState({ confirmDeleteId: null }));
+            }
         }
-    }, [user, db, appId]);
-    
+        
+        // --- Firebase Logic Handlers ---
+        
+        async function handleAddDish() {
+            const newDishName = document.getElementById('new-dish-name').value;
+            if (!newDishName.trim() || !appState.user) return;
+            
+            // Note: Ingredient logic would need to be re-implemented here
+            const newDish = { name: newDishName, ingredients: [], createdAt: serverTimestamp() };
+            
+            try {
+                const collectionPath = `/artifacts/${appId}/users/${appState.user.uid}/dishes`;
+                await addDoc(collection(db, collectionPath), newDish);
+                document.getElementById('new-dish-name').value = ''; // Clear input
+            } catch(e) {
+                console.error("Error adding document: ", e);
+            }
+        }
+        
+        async function handleConfirmDelete() {
+            if(!appState.confirmDeleteId || !appState.user) return;
+            try {
+                const dishDocRef = doc(db, `/artifacts/${appId}/users/${appState.user.uid}/dishes`, appState.confirmDeleteId);
+                await deleteDoc(dishDocRef);
+                setState({ confirmDeleteId: null });
+            } catch(e) {
+                 console.error("Error deleting document: ", e);
+            }
+        }
 
-    const signInWithGoogle = async () => {
-        if (auth) {
+
+        const signInWithGoogle = async () => {
             const provider = new GoogleAuthProvider();
             try {
                 await signInWithPopup(auth, provider);
             } catch (error) {
                 console.error("Authentication error:", error);
             }
-        }
-    };
+        };
 
-    const handleSignOut = async () => {
-        if (auth) {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error("Sign out error:", error);
+        const handleSignOut = () => signOut(auth);
+
+        // --- Auth State and Data Listener ---
+        onAuthStateChanged(auth, (currentUser) => {
+            setState({ user: currentUser, loading: false });
+
+            if (currentUser) {
+                // User is signed in, listen for their data
+                const collectionPath = `/artifacts/${appId}/users/${currentUser.uid}/dishes`;
+                const q = query(collection(db, collectionPath));
+                
+                onSnapshot(q, (querySnapshot) => {
+                    const dishesData = [];
+                    querySnapshot.forEach((doc) => {
+                        dishesData.push({ id: doc.id, ...doc.data() });
+                    });
+                    dishesData.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0) );
+                    setState({ dishes: dishesData });
+                }, (error) => {
+                    console.error("Error fetching dishes:", error);
+                });
+            } else {
+                // User is signed out
+                setState({ dishes: [] });
             }
-        }
-    };
+        });
 
-    if (loading) {
-         return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <Spinner />
-                <span className="text-xl text-gray-700 dark:text-gray-300">Loading...</span>
-            </div>
-        );
-    }
-    
-    return (
-        <div className="font-sans min-h-screen flex flex-col dark">
-            <header className="bg-white dark:bg-gray-800 shadow-md dark:border-b dark:border-gray-700 z-10">
-                <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between h-16">
-                        <div className="flex items-center">
-                            <span className="font-bold text-2xl text-gray-800 dark:text-white">🍳 What's Cooking?</span>
-                        </div>
-                        { user &&
-                            <div className="flex items-center gap-4">
-                                <div className="flex gap-2">
-                                     <button
-                                        onClick={() => setPage('menu')}
-                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${page === 'menu' ? 'bg-sky-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
-                                    >
-                                        Menu
-                                    </button>
-                                    <button
-                                        onClick={() => setPage('database')}
-                                        className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${page === 'database' ? 'bg-sky-600 text-white' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700'}`}
-                                    >
-                                        Database
-                                    </button>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <img src={user.photoURL} alt={user.displayName} className="h-8 w-8 rounded-full" />
-                                    <button onClick={handleSignOut} className="text-sm text-gray-600 dark:text-gray-300 hover:underline">Sign Out</button>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                </nav>
-            </header>
-            <main className="flex-grow bg-gray-50 dark:bg-gray-900">
-                { !user ? (
-                    <LoginScreen signIn={signInWithGoogle} />
-                ) : page === 'database' ? (
-                    <DatabasePage dishes={dishes} db={db} userId={user.uid} appId={appId} />
-                ) : (
-                    <MenuPage dishes={dishes} />
-                )}
-            </main>
-        </div>
-    );
-}
+        // --- Initial Render ---
+        render();
 
+    </script>
+</body>
+</html>
