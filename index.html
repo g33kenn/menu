@@ -271,28 +271,52 @@
             if (!ingredientName) return null;
             ingredientSpinner.style.display = 'inline-flex';
 
-            const systemPrompt = `You are an expert food categorizer. Classify the given ingredient into one of three categories: "Protein", "Side", or "Fruit/Vegetable". Respond with ONLY the category name. Do not add any explanation or punctuation. The ingredient can be in English or French. Examples: chicken -> Protein, poulet -> Protein, rice -> Side, riz -> Side, apple -> Fruit/Vegetable, pomme -> Fruit/Vegetable, salmon -> Protein, potato -> Side, brocoli -> Fruit/Vegetable`;
-            const userQuery = ingredientName;
-            
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${API_KEY}`;
-                const payload = {
-                    contents: [{ parts: [{ text: userQuery }] }],
-                    systemInstruction: { parts: [{ text: systemPrompt }] },
-                };
-                
-                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
-                if (!response.ok) throw new Error(`API call failed with status: ${response.status}`);
+            const categoryMap = {
+                // Proteins
+                'chicken': 'proteine', 'poulet': 'proteine',
+                'beef': 'proteine', 'boeuf': 'proteine',
+                'pork': 'proteine', 'porc': 'proteine',
+                'fish': 'proteine', 'poisson': 'proteine',
+                'salmon': 'proteine', 'saumon': 'proteine',
+                'tuna': 'proteine', 'thon': 'proteine',
+                'shrimp': 'proteine', 'crevettes': 'proteine',
+                'eggs': 'proteine', 'oeufs': 'proteine',
+                'tofu': 'proteine', 'lentils': 'proteine', 'lentilles': 'proteine',
+                'beans': 'proteine', 'haricots': 'proteine',
 
-                const result = await response.json();
-                const text = result.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-                return ["Protein", "Side", "Fruit/Vegetable"].includes(text) ? text : 'Side';
-            } catch (error) {
-                console.error("Error categorizing ingredient:", error);
-                return 'Side';
-            } finally {
-                 ingredientSpinner.style.display = 'none';
-            }
+                // Sides
+                'rice': 'side', 'riz': 'side',
+                'pasta': 'side', 'pates': 'side',
+                'bread': 'side', 'pain': 'side',
+                'potatoes': 'side', 'pommes de terre': 'side',
+                'potato': 'side',
+                'quinoa': 'side', 'couscous': 'side',
+
+                // Fruits & Vegetables
+                'apple': 'fruit/vegetable', 'pomme': 'fruit/vegetable',
+                'banana': 'fruit/vegetable', 'banane': 'fruit/vegetable',
+                'orange': 'fruit/vegetable',
+                'berries': 'fruit/vegetable', 'fraises': 'fruit/vegetable', 'framboises': 'fruit/vegetable',
+                'grapes': 'fruit/vegetable', 'raisins': 'fruit/vegetable',
+                'tomato': 'fruit/vegetable', 'tomate': 'fruit/vegetable',
+                'onion': 'fruit/vegetable', 'oignon': 'fruit/vegetable',
+                'garlic': 'fruit/vegetable', 'ail': 'fruit/vegetable',
+                'lettuce': 'fruit/vegetable', 'laitue': 'fruit/vegetable',
+                'spinach': 'fruit/vegetable', 'epinards': 'fruit/vegetable',
+                'broccoli': 'fruit/vegetable', 'brocoli': 'fruit/vegetable',
+                'carrot': 'fruit/vegetable', 'carotte': 'fruit/vegetable',
+                'pepper': 'fruit/vegetable', 'poivron': 'fruit/vegetable',
+                'cucumber': 'fruit/vegetable', 'concombre': 'fruit/vegetable',
+                'zucchini': 'fruit/vegetable', 'courgette': 'fruit/vegetable',
+            };
+
+            const category = categoryMap[ingredientName.toLowerCase()] || 'side';
+
+            // Simulate a short delay to mimic an API call and allow spinner to be visible
+            await new Promise(resolve => setTimeout(resolve, 250));
+
+            ingredientSpinner.style.display = 'none';
+            return category;
         }
 
         async function saveData() {
@@ -339,9 +363,9 @@
         function getIngredientTagClasses(ingredientName) {
             const category = appState.ingredients[ingredientName.toLowerCase()];
             switch (category) {
-                case 'Protein': return 'bg-red-100 text-red-800';
-                case 'Side': return 'bg-yellow-100 text-yellow-800';
-                case 'Fruit/Vegetable': return 'bg-green-100 text-green-800';
+                case 'proteine': return 'bg-red-100 text-red-800';
+                case 'side': return 'bg-yellow-100 text-yellow-800';
+                case 'fruit/vegetable': return 'bg-green-100 text-green-800';
                 default: return 'bg-gray-200 text-gray-700';
             }
         }
@@ -415,7 +439,7 @@
         
         async function handleFormSubmit(e) {
             e.preventDefault();
-            const name = dishNameInput.value.trim();
+.trim();
             if (!name || appState.currentIngredients.length === 0) return;
 
             const id = dishIdInput.value;
@@ -475,12 +499,15 @@
 
         function renderIngredientFilters() {
             ingredientCategoriesContainer.innerHTML = '';
-            const categories = { 'Protein': [], 'Side': [], 'Fruit/Vegetable': [] };
+            const categories = { 'proteine': [], 'side': [], 'fruit/vegetable': [] };
             
             Object.keys(appState.ingredients).forEach(ing => {
                 const category = appState.ingredients[ing];
-                if (categories[category]) categories[category].push(ing);
-                else categories['Side'].push(ing);
+                if (categories[category]) {
+                    categories[category].push(ing);
+                } else {
+                    categories['side'].push(ing); // Default to side
+                }
             });
             
             Object.keys(categories).forEach(cat => categories[cat].sort());
@@ -494,8 +521,10 @@
                             <input id="ing-${ing}" name="${ing}" type="checkbox" onchange="window.app.toggleIngredient('${ing}')" ${appState.selectedIngredients.has(ing) ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
                             <label for="ing-${ing}" class="ml-3 block text-sm font-medium text-gray-700 capitalize">${ing}</label>
                         </div>`).join('');
+
+                    const displayCategory = category.charAt(0).toUpperCase() + category.slice(1);
                     categoryDiv.innerHTML = `
-                        <h3 class="font-semibold text-lg mb-3">${category}</h3>
+                        <h3 class="font-semibold text-lg mb-3">${displayCategory}</h3>
                         <div class="space-y-2">${ingredientsHtml}</div>`;
                     ingredientCategoriesContainer.appendChild(categoryDiv);
                 }
@@ -529,7 +558,7 @@
                     <h3 class="font-bold text-lg">${dish.name}</h3>
                     <p class="text-sm text-gray-500 mt-2">Requires:</p>
                     <div class="mt-2 flex flex-wrap gap-2">
-                        ${dish.ingredients.map(ing => `<span class="${appState.selectedIngredients.has(ing) ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'} text-xs font-medium px-2.5 py-1 rounded-full capitalize">${ing}</span>`).join('')}
+                        ${dish.ingredients.map(ing => `<span class="${getIngredientTagClasses(ing)} text-xs font-medium px-2.5 py-1 rounded-full capitalize">${ing}</span>`).join('')}
                     </div>`;
                 dishResultsContainer.appendChild(card);
             });
