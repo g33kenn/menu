@@ -1,591 +1,621 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>What's in the Fridge?</title>
+    <title>Dish Dash: Database & Menu Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #f3f4f6;
         }
-        .tab-active {
-            border-bottom-color: #3b82f6;
-            color: #3b82f6;
-            font-weight: 600;
+        .tag {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 10px;
+            border-radius: 9999px;
+            font-weight: 500;
+            margin: 2px;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
         }
-        #app-content.blurred {
-            filter: blur(5px);
-            pointer-events: none;
-            user-select: none;
+        .tag-protein { background-color: #ef4444; color: white; }
+        .tag-side { background-color: #f59e0b; color: #111827; }
+        .tag-veggie { background-color: #22c55e; color: white; }
+        .tag-remove {
+            margin-left: 8px;
+            font-weight: bold;
+            opacity: 0.7;
+        }
+        .tag-remove:hover {
+            opacity: 1;
+        }
+        .tag-selected {
+            box-shadow: 0 0 0 3px #3b82f6;
+        }
+        .nav-button {
+            padding: 8px 16px;
+            border-radius: 8px;
+            transition: background-color 0.2s;
+        }
+        .nav-button.active {
+            background-color: #374151;
+        }
+        .nav-button:not(.active):hover {
+            background-color: #1f2937;
+        }
+        .autocomplete-suggestions {
+            position: absolute;
+            border: 1px solid #4b5563;
+            background-color: #1f2937;
+            z-index: 99;
+            max-height: 150px;
+            overflow-y: auto;
+            border-radius: 8px;
+            margin-top: 4px;
+        }
+        .autocomplete-suggestion {
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+        .autocomplete-suggestion:hover {
+            background-color: #374151;
+        }
+        /* Custom scrollbar for webkit browsers */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #1f2937;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* Hide spinner from number input */
+        input[type='number']::-webkit-inner-spin-button,
+        input[type='number']::-webkit-outer-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        input[type='number'] {
+          -moz-appearance: textfield;
         }
     </style>
 </head>
-<body class="bg-gray-100 text-gray-800">
+<body class="antialiased">
 
-    <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
-        <header class="text-center mb-8 flex flex-col sm:flex-row justify-between items-center">
-            <div>
-                 <h1 class="text-4xl font-bold text-gray-900">What's in the Fridge?</h1>
-                 <p class="text-lg text-gray-600 mt-2">Your personal kitchen assistant</p>
-            </div>
-            <div id="auth-container" class="mt-4 sm:mt-0">
-                <!-- Auth UI will be rendered here -->
-            </div>
-        </header>
-
-         <!-- Login Overlay -->
-        <div id="login-prompt" class="hidden text-center py-24">
-             <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-400"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-            <h2 class="mt-6 text-2xl font-semibold text-gray-800">Welcome!</h2>
-            <p class="mt-2 text-gray-600">Please sign in with your Google account to access your dishes.</p>
-            <button id="login-button-main" class="mt-6 inline-flex items-center gap-2 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6.012A4.94 4.94 0 0 1 12 4.5a4.95 4.95 0 0 1-3.53 1.465A4.94 4.94 0 0 1 3.5 12a4.95 4.95 0 0 1 1.465 3.53A4.94 4.94 0 0 1 12 20.5a4.95 4.95 0 0 1 3.53-1.465A4.94 4.94 0 0 1 21.5 12a4.95 4.95 0 0 1-1.465-3.53A4.941 4.941 0 0 1 15 6.012Z"/><path d="M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0Z"/><path d="M12 12v-1.5A2.5 2.5 0 0 0 9.5 8"/></svg>
-                Sign in with Google
-            </button>
-        </div>
-        
-        <div id="app-content">
-            <!-- Tabs -->
-            <div class="mb-8 border-b border-gray-200">
-                <nav class="flex -mb-px" aria-label="Tabs">
-                    <button onclick="switchTab('menu')" id="tab-menu" class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 tab-active">
-                        Menu
-                    </button>
-                    <button onclick="switchTab('database')" id="tab-database" class="w-1/2 py-4 px-1 text-center border-b-2 font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
-                        Database
-                    </button>
+    <div id="app" class="min-h-screen flex flex-col p-4 md:p-8">
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-2">
+                <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
+                </svg>
+                <h1 class="text-2xl font-bold text-gray-100">Dish Dash</h1>
+                <nav class="ml-6 bg-gray-800 rounded-lg p-1 flex space-x-1">
+                    <button id="nav-database" class="nav-button active">Database</button>
+                    <button id="nav-menu" class="nav-button">Menu</button>
                 </nav>
             </div>
+            <button id="auth-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
+                Connect with Google
+            </button>
+        </header>
 
-            <!-- Main Content -->
-            <main>
-                <!-- Menu Page -->
-                <div id="page-menu">
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-                        <!-- Left Panel: Ingredients -->
-                        <div class="md:col-span-1 bg-white p-6 rounded-lg shadow-md">
-                            <h2 class="text-2xl font-semibold mb-6">Available Ingredients</h2>
-                            <div id="ingredient-categories">
-                                <!-- Categories will be rendered here -->
-                            </div>
-                        </div>
-                        <!-- Right Panel: Dishes -->
-                        <div class="md:col-span-3">
-                            <h2 class="text-2xl font-semibold mb-6">Dishes You Can Make</h2>
-                            <div id="dish-results" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                               <!-- Dish cards will be displayed here -->
-                            </div>
-                             <div id="no-dishes-message" class="hidden text-center py-12">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-400"><path d="M10.68 13.31a16 16 0 0 0 3.41 2.31c.32.14.46.5.34.82l-1.25 2.5a.61.61 0 0 1-1.09-.55l.55-2.73a15.06 15.06 0 0 1-3.4-2.31c-.32-.14-.46-.5-.34-.82l1.25-2.5a.61.61 0 0 1 1.09.55l-.55 2.73Z"/><path d="M21 14c-1.3-1.3-2.3-2.3-3-3-1.3-1.3-1.3-3.1 0-4.4l-2.5-2.5c-1.3 1.3-3.1 1.3-4.4 0-1.3-1.3-2.3-2.3-3-3C6.7 2.7 5 2.7 3.7 4L2.3 5.4c-1.3 1.3-1.3 3.1 0 4.4 1.3 1.3 2.3 2.3 3 3 1.3 1.3 1.3 3.1 0 4.4l2.5 2.5c1.3-1.3 3.1-1.3 4.4 0 1.3 1.3 2.3 2.3 3 3 1.3 1.3 3.1 1.3 4.4 0l1.4-1.4c1.3-1.3 1.3-3.1 0-4.4Z"/></svg>
-                                <h3 class="mt-4 text-lg font-medium text-gray-900">No matching dishes</h3>
-                                <p class="mt-1 text-sm text-gray-500">Select more ingredients or add more dishes to the database.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Database Page -->
-                <div id="page-database" class="hidden">
-                     <!-- Add Dish Form -->
-                     <div class="bg-white p-6 rounded-lg shadow-md mb-8">
-                        <h2 class="text-2xl font-semibold mb-4" id="form-title">Add a New Dish</h2>
+        <main class="flex-grow">
+            <!-- Database Page -->
+            <div id="page-database">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Dish Creation Form -->
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 id="form-title" class="text-xl font-semibold mb-4">Create a New Dish</h2>
                         <form id="dish-form" class="space-y-4">
-                            <input type="hidden" id="dish-id">
                             <div>
-                                <label for="dish-name" class="block text-sm font-medium text-gray-700">Dish Name</label>
-                                <input type="text" id="dish-name" name="dish-name" class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm" required>
+                                <label for="dish-name" class="block text-sm font-medium text-gray-300">Name of the Dish</label>
+                                <input type="text" id="dish-name" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
                             </div>
-                            <div>
-                                <label for="ingredient-input" class="block text-sm font-medium text-gray-700">Ingredients (press Enter to add)</label>
-                                <div class="mt-1 flex items-center w-full border border-gray-300 rounded-md shadow-sm bg-white focus-within:ring-1 focus-within:ring-blue-500 focus-within:border-blue-500">
-                                    <input type="text" id="ingredient-input" placeholder="e.g., chicken, rice..." class="flex-1 block w-full border-0 rounded-md py-2 px-3 focus:ring-0 sm:text-sm bg-transparent">
-                                    <span id="ingredient-spinner" class="hidden items-center pr-3">
-                                        <svg class="animate-spin h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                    </span>
-                                </div>
-                                <div id="ingredients-list" class="mt-2 flex flex-wrap gap-2"></div>
+                            <!-- Ingredient Inputs -->
+                            <div class="relative">
+                                <label for="protein-input" class="block text-sm font-medium text-gray-300">Protein</label>
+                                <input type="text" id="protein-input" data-category="protein" class="ingredient-input mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-red-500 focus:border-red-500" placeholder="Type and press Enter">
+                                <div id="protein-tags" class="mt-2 min-h-[36px]"></div>
                             </div>
-                            <div class="flex justify-end space-x-2">
-                                 <button type="button" id="cancel-edit-btn" onclick="cancelEdit()" class="hidden py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Cancel</button>
-                                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">Save Dish</button>
+                            <div class="relative">
+                                <label for="side-input" class="block text-sm font-medium text-gray-300">Side</label>
+                                <input type="text" id="side-input" data-category="side" class="ingredient-input mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" placeholder="Type and press Enter">
+                                <div id="side-tags" class="mt-2 min-h-[36px]"></div>
+                            </div>
+                            <div class="relative">
+                                <label for="veggie-input" class="block text-sm font-medium text-gray-300">Veggie</label>
+                                <input type="text" id="veggie-input" data-category="veggie" class="ingredient-input mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Type and press Enter">
+                                <div id="veggie-tags" class="mt-2 min-h-[36px]"></div>
+                            </div>
+                            <div class="flex space-x-2">
+                                <button type="submit" id="save-dish-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Save Dish</button>
+                                <button type="button" id="cancel-edit-button" class="w-full hidden bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Cancel</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Existing Dishes -->
-                    <div>
-                        <h2 class="text-2xl font-semibold mb-6">Your Dishes</h2>
-                        <div id="database-dish-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            <!-- Database dish cards will be displayed here -->
-                        </div>
-                         <div id="no-database-dishes-message" class="hidden text-center py-12">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto text-gray-400"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
-                            <h3 class="mt-4 text-lg font-medium text-gray-900">No dishes yet</h3>
-                            <p class="mt-1 text-sm text-gray-500">Start by adding your first dish above.</p>
+                    <!-- Dish List -->
+                    <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4">My Dishes</h2>
+                        <div id="dish-list" class="space-y-3 max-h-[65vh] overflow-y-auto custom-scrollbar pr-2">
+                           <!-- Dishes will be dynamically inserted here -->
+                           <p id="no-dishes-msg" class="text-gray-400">No dishes created yet. Add one to get started!</p>
                         </div>
                     </div>
                 </div>
-            </main>
+            </div>
+
+            <!-- Menu Page -->
+            <div id="page-menu" class="hidden">
+                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                    <!-- Ingredient Filters -->
+                    <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg shadow-lg h-fit">
+                        <h2 class="text-xl font-semibold mb-4">Available Ingredients</h2>
+                        <div id="ingredient-filters" class="space-y-4">
+                            <div>
+                                <h3 class="font-semibold text-red-400">Protein</h3>
+                                <div id="filter-protein" class="flex flex-wrap gap-2 mt-2"></div>
+                            </div>
+                             <div>
+                                <h3 class="font-semibold text-yellow-400">Side</h3>
+                                <div id="filter-side" class="flex flex-wrap gap-2 mt-2"></div>
+                            </div>
+                             <div>
+                                <h3 class="font-semibold text-green-400">Veggie</h3>
+                                <div id="filter-veggie" class="flex flex-wrap gap-2 mt-2"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Available Dishes -->
+                    <div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-xl font-semibold mb-4">What you can cook</h2>
+                        <div id="menu-dish-list" class="space-y-2 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
+                            <!-- Filtered dishes will appear here -->
+                             <p id="no-menu-msg" class="text-gray-400">Select ingredients to see what you can cook!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+        
+        <!-- Toast Notification -->
+        <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-5 rounded-lg shadow-xl text-sm font-semibold opacity-0 transform translate-y-10 transition-all duration-300">
+            <p id="toast-message">Success!</p>
         </div>
     </div>
 
     <script type="module">
         // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         // Your web app's Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyCIVdjx95c7v-40t0TmhqWm3467F1BAkHg",
-            authDomain: "menu-cf506.firebaseapp.com",
-            projectId: "menu-cf506",
-            storageBucket: "menu-cf506.appspot.com",
-            messagingSenderId: "568101794661",
-            appId: "1:568101794661:web:293d9c6cff80ea6e5d678c"
+          apiKey: "AIzaSyCIVdjx95c7v-40t0TmhqWm3467F1BAkHg",
+          authDomain: "menu-cf506.firebaseapp.com",
+          projectId: "menu-cf506",
+          storageBucket: "menu-cf506.firebasestorage.app",
+          messagingSenderId: "568101794661",
+          appId: "1:568101794661:web:293d9c6cff80ea6e5d678c"
         };
-
+        
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const provider = new GoogleAuthProvider();
+        setLogLevel('debug');
 
-        let currentUserId = null;
-        let unsubscribeFromFirestore = null; // To stop listening for data changes on logout
-
-        const appState = {
-            dishes: [],
-            ingredients: {},
-            selectedIngredients: new Set(),
-            currentIngredients: [],
-            editingDishId: null,
-        };
-
-        const API_KEY = ""; // Gemini API Key
-
-        // --- DOM Elements ---
-        const pageMenu = document.getElementById('page-menu');
+        // App state
+        let currentUser = null;
+        let dishesUnsubscribe = null;
+        let dishes = [];
+        let editingDishId = null;
+        let allIngredients = { protein: new Set(), side: new Set(), veggie: new Set() };
+        let selectedIngredients = { protein: new Set(), side: new Set(), veggie: new Set() };
+        let currentIngredients = { protein: [], side: [], veggie: [] };
+        
+        // DOM Elements
+        const authButton = document.getElementById('auth-button');
+        const navDatabase = document.getElementById('nav-database');
+        const navMenu = document.getElementById('nav-menu');
         const pageDatabase = document.getElementById('page-database');
-        const tabMenu = document.getElementById('tab-menu');
-        const tabDatabase = document.getElementById('tab-database');
+        const pageMenu = document.getElementById('page-menu');
         const dishForm = document.getElementById('dish-form');
         const formTitle = document.getElementById('form-title');
-        const dishIdInput = document.getElementById('dish-id');
         const dishNameInput = document.getElementById('dish-name');
-        const ingredientInput = document.getElementById('ingredient-input');
-        const ingredientsList = document.getElementById('ingredients-list');
-        const ingredientSpinner = document.getElementById('ingredient-spinner');
-        const cancelEditBtn = document.getElementById('cancel-edit-btn');
-        const databaseDishList = document.getElementById('database-dish-list');
-        const ingredientCategoriesContainer = document.getElementById('ingredient-categories');
-        const dishResultsContainer = document.getElementById('dish-results');
-        const noDishesMessage = document.getElementById('no-dishes-message');
-        const noDatabaseDishesMessage = document.getElementById('no-database-dishes-message');
-        const authContainer = document.getElementById('auth-container');
-        const appContent = document.getElementById('app-content');
-        const loginPrompt = document.getElementById('login-prompt');
-        const mainLoginButton = document.getElementById('login-button-main');
-
-        // --- Authentication ---
+        const saveDishButton = document.getElementById('save-dish-button');
+        const cancelEditButton = document.getElementById('cancel-edit-button');
+        const dishListContainer = document.getElementById('dish-list');
+        const menuDishListContainer = document.getElementById('menu-dish-list');
+        const ingredientInputs = document.querySelectorAll('.ingredient-input');
         
-        async function signInWithGoogle() {
-            try {
-                await signInWithPopup(auth, provider);
-            } catch (error) {
-                console.error("Authentication error:", error);
-            }
-        }
-
-        async function signOutUser() {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error("Sign out error:", error);
-            }
-        }
-
+        // --- AUTHENTICATION ---
         onAuthStateChanged(auth, (user) => {
+            currentUser = user;
             if (user) {
-                // User is signed in
-                currentUserId = user.uid;
-                updateUIForAuthState(user);
-                loadData(currentUserId);
+                authButton.textContent = 'Sign Out';
+                fetchDishes();
             } else {
-                // User is signed out
-                currentUserId = null;
-                updateUIForAuthState(null);
-                if(unsubscribeFromFirestore) unsubscribeFromFirestore();
-                resetAppState();
+                authButton.textContent = 'Connect with Google';
+                if (dishesUnsubscribe) dishesUnsubscribe();
+                dishes = [];
                 renderAll();
+                showToast("Demo mode. Connect with Google to save your dishes.", "info", 5000);
             }
         });
 
-        function updateUIForAuthState(user) {
-            if (user) {
-                appContent.classList.remove('blurred');
-                loginPrompt.classList.add('hidden');
-                authContainer.innerHTML = `
-                    <div class="flex items-center gap-3">
-                        <img src="${user.photoURL}" alt="User photo" class="w-10 h-10 rounded-full">
-                        <div>
-                            <p class="font-semibold text-sm">${user.displayName}</p>
-                            <p class="text-xs text-gray-500">${user.email}</p>
-                        </div>
-                        <button id="logout-button" class="bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-2 px-3 rounded-lg text-sm transition">Sign Out</button>
-                    </div>
-                `;
-                document.getElementById('logout-button').addEventListener('click', signOutUser);
+        authButton.addEventListener('click', () => {
+            if (currentUser) {
+                signOut(auth);
             } else {
-                appContent.classList.add('blurred');
-                loginPrompt.classList.remove('hidden');
-                authContainer.innerHTML = `<button id="login-button-header" class="bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg shadow-md hover:bg-blue-700 transition">Sign In</button>`;
-                document.getElementById('login-button-header').addEventListener('click', signInWithGoogle);
+                const provider = new GoogleAuthProvider();
+                signInWithPopup(auth, provider).catch(error => console.error("Auth Error:", error));
             }
-        }
-
-        // --- Core Logic ---
-
-        function switchTab(tabName) {
-            if (tabName === 'menu') {
-                pageMenu.classList.remove('hidden');
-                pageDatabase.classList.add('hidden');
-                tabMenu.classList.add('tab-active');
-                tabDatabase.classList.remove('tab-active');
-                renderMenuPage();
-            } else {
-                pageMenu.classList.add('hidden');
-                pageDatabase.classList.remove('hidden');
-                tabMenu.classList.remove('tab-active');
-                tabDatabase.classList.add('tab-active');
-            }
-        }
+        });
         
-        async function getIngredientCategory(ingredientName) {
-            if (!ingredientName) return null;
-            ingredientSpinner.style.display = 'inline-flex';
-
-            const categoryMap = {
-                // Proteins
-                'chicken': 'proteine', 'poulet': 'proteine',
-                'beef': 'proteine', 'boeuf': 'proteine',
-                'pork': 'proteine', 'porc': 'proteine',
-                'fish': 'proteine', 'poisson': 'proteine',
-                'salmon': 'proteine', 'saumon': 'proteine',
-                'tuna': 'proteine', 'thon': 'proteine',
-                'shrimp': 'proteine', 'crevettes': 'proteine',
-                'eggs': 'proteine', 'oeufs': 'proteine',
-                'tofu': 'proteine', 'lentils': 'proteine', 'lentilles': 'proteine',
-                'beans': 'proteine', 'haricots': 'proteine',
-
-                // Sides
-                'rice': 'side', 'riz': 'side',
-                'pasta': 'side', 'pates': 'side',
-                'bread': 'side', 'pain': 'side',
-                'potatoes': 'side', 'pommes de terre': 'side',
-                'potato': 'side',
-                'quinoa': 'side', 'couscous': 'side',
-
-                // Fruits & Vegetables
-                'apple': 'fruit/vegetable', 'pomme': 'fruit/vegetable',
-                'banana': 'fruit/vegetable', 'banane': 'fruit/vegetable',
-                'orange': 'fruit/vegetable',
-                'berries': 'fruit/vegetable', 'fraises': 'fruit/vegetable', 'framboises': 'fruit/vegetable',
-                'grapes': 'fruit/vegetable', 'raisins': 'fruit/vegetable',
-                'tomato': 'fruit/vegetable', 'tomate': 'fruit/vegetable',
-                'onion': 'fruit/vegetable', 'oignon': 'fruit/vegetable',
-                'garlic': 'fruit/vegetable', 'ail': 'fruit/vegetable',
-                'lettuce': 'fruit/vegetable', 'laitue': 'fruit/vegetable',
-                'spinach': 'fruit/vegetable', 'epinards': 'fruit/vegetable',
-                'broccoli': 'fruit/vegetable', 'brocoli': 'fruit/vegetable',
-                'carrot': 'fruit/vegetable', 'carotte': 'fruit/vegetable',
-                'pepper': 'fruit/vegetable', 'poivron': 'fruit/vegetable',
-                'cucumber': 'fruit/vegetable', 'concombre': 'fruit/vegetable',
-                'zucchini': 'fruit/vegetable', 'courgette': 'fruit/vegetable',
-            };
-
-            const category = categoryMap[ingredientName.toLowerCase()] || 'side';
-
-            // Simulate a short delay to mimic an API call and allow spinner to be visible
-            await new Promise(resolve => setTimeout(resolve, 250));
-
-            ingredientSpinner.style.display = 'none';
-            return category;
-        }
-
-        async function saveData() {
-            if (!currentUserId) return;
-            const userDocRef = doc(db, "users", currentUserId);
-            try {
-                await setDoc(userDocRef, {
-                    dishes: appState.dishes,
-                    ingredients: appState.ingredients
-                });
-            } catch (error) {
-                console.error("Error saving data to Firestore: ", error);
+        // --- NAVIGATION ---
+        function switchPage(page) {
+            if (page === 'database') {
+                pageDatabase.classList.remove('hidden');
+                pageMenu.classList.add('hidden');
+                navDatabase.classList.add('active');
+                navMenu.classList.remove('active');
+            } else {
+                pageDatabase.classList.add('hidden');
+                pageMenu.classList.remove('hidden');
+                navDatabase.classList.remove('active');
+                navMenu.classList.add('active');
+                renderMenuPage(); // Re-render menu page on switch to reflect latest data
             }
         }
+        navDatabase.addEventListener('click', () => switchPage('database'));
+        navMenu.addEventListener('click', () => switchPage('menu'));
 
-        function loadData(userId) {
-            const userDocRef = doc(db, "users", userId);
-            unsubscribeFromFirestore = onSnapshot(userDocRef, (doc) => {
-                if (doc.exists()) {
-                    const data = doc.data();
-                    appState.dishes = data.dishes || [];
-                    appState.ingredients = data.ingredients || {};
-                } else {
-                    console.log("No data found for user, starting fresh.");
-                    resetAppState();
-                }
+        // --- DATA HANDLING ---
+        function fetchDishes() {
+            if (!currentUser) return;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            const dishesRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes');
+            
+            dishesUnsubscribe = onSnapshot(dishesRef, (snapshot) => {
+                dishes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                calculateAllIngredients();
                 renderAll();
+            }, error => {
+                console.error("Error fetching dishes:", error);
+                showToast("Could not fetch dishes.", "error");
             });
         }
         
-        function resetAppState() {
-            appState.dishes = [];
-            appState.ingredients = {};
-            appState.selectedIngredients = new Set();
-            appState.currentIngredients = [];
-            appState.editingDishId = null;
+        function calculateAllIngredients() {
+            allIngredients = { protein: new Set(), side: new Set(), veggie: new Set() };
+            dishes.forEach(dish => {
+                dish.protein?.forEach(item => allIngredients.protein.add(item));
+                dish.side?.forEach(item => allIngredients.side.add(item));
+                dish.veggie?.forEach(item => allIngredients.veggie.add(item));
+            });
         }
         
-        function renderAll(){
-            renderDatabaseDishes();
+        function renderAll() {
+            renderDatabasePage();
             renderMenuPage();
         }
 
-        function getIngredientTagClasses(ingredientName) {
-            const category = appState.ingredients[ingredientName.toLowerCase()];
-            switch (category) {
-                case 'proteine': return 'bg-red-100 text-red-800';
-                case 'side': return 'bg-yellow-100 text-yellow-800';
-                case 'fruit/vegetable': return 'bg-green-100 text-green-800';
-                default: return 'bg-gray-200 text-gray-700';
+        // --- DATABASE PAGE ---
+        function renderDatabasePage() {
+            dishListContainer.innerHTML = '';
+            if (dishes.length === 0) {
+                 dishListContainer.innerHTML = `<p id="no-dishes-msg" class="text-gray-400">No dishes created yet. Add one to get started!</p>`;
+                 return;
             }
-        }
 
-        // --- Database Page Functions ---
-        
-        function renderDatabaseDishes() {
-            databaseDishList.innerHTML = '';
-            noDatabaseDishesMessage.classList.toggle('hidden', appState.dishes.length > 0);
-            
-            appState.dishes.forEach(dish => {
-                const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-lg shadow-sm border border-gray-200';
-                card.innerHTML = `
-                    <h3 class="font-bold text-lg">${dish.name}</h3>
-                    <div class="mt-2 flex flex-wrap gap-2">
-                        ${dish.ingredients.map(ing => `<span class="${getIngredientTagClasses(ing)} capitalize text-xs font-medium px-2.5 py-1 rounded-full">${ing}</span>`).join('')}
+            dishes.forEach(dish => {
+                const dishEl = document.createElement('div');
+                dishEl.className = 'bg-gray-700 p-3 rounded-lg flex justify-between items-center';
+                dishEl.innerHTML = `
+                    <div>
+                        <p class="font-semibold text-white">${dish.name}</p>
+                        <div class="flex flex-wrap mt-1">
+                            ${dish.protein.map(p => `<span class="tag tag-protein text-xs">${p}</span>`).join('')}
+                            ${dish.side.map(s => `<span class="tag tag-side text-xs">${s}</span>`).join('')}
+                            ${dish.veggie.map(v => `<span class="tag tag-veggie text-xs">${v}</span>`).join('')}
+                        </div>
                     </div>
-                    <div class="mt-4 flex justify-end space-x-2">
-                        <button onclick="window.app.editDish('${dish.id}')" class="text-blue-500 hover:text-blue-700">
-                           <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                    <div class="flex space-x-2">
+                        <button class="edit-btn p-2 rounded-md hover:bg-gray-600" data-id="${dish.id}">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 12V7a2 2 0 012-2h2.586l-4.293 4.293A2 2 0 015 12zM3 15a2 2 0 012-2h10a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2z"></path></svg>
                         </button>
-                        <button onclick="window.app.deleteDish('${dish.id}')" class="text-red-500 hover:text-red-700">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                        <button class="delete-btn p-2 rounded-md hover:bg-gray-600 text-red-400" data-id="${dish.id}">
+                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
                         </button>
-                    </div>`;
-                databaseDishList.appendChild(card);
+                    </div>
+                `;
+                dishEl.querySelector('.edit-btn').addEventListener('click', () => handleEdit(dish.id));
+                dishEl.querySelector('.delete-btn').addEventListener('click', () => handleDelete(dish.id));
+                dishListContainer.appendChild(dishEl);
             });
         }
         
-        function renderCurrentIngredients() {
-            ingredientsList.innerHTML = '';
-            appState.currentIngredients.forEach(ing => {
-                const tag = document.createElement('span');
-                const colorClasses = getIngredientTagClasses(ing);
-                const buttonColorClasses = {
-                    'bg-red-100 text-red-800': 'text-red-500 hover:text-red-700',
-                    'bg-yellow-100 text-yellow-800': 'text-yellow-500 hover:text-yellow-700',
-                    'bg-green-100 text-green-800': 'text-green-500 hover:text-green-700',
-                }[colorClasses] || 'text-gray-500 hover:text-gray-700';
-
-                tag.className = `flex items-center ${colorClasses} text-sm font-medium px-2.5 py-1 rounded-full capitalize`;
-                tag.innerHTML = `
-                    ${ing}
-                    <button type="button" onclick="window.app.removeIngredientTag('${ing}')" class="ml-2 ${buttonColorClasses}"> &times; </button>`;
-                ingredientsList.appendChild(tag);
-            });
-        }
-        
-        function removeIngredientTag(ingredientName) {
-            appState.currentIngredients = appState.currentIngredients.filter(ing => ing !== ingredientName);
-            renderCurrentIngredients();
-        }
-
-        async function handleIngredientAdd(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                const ingredientName = ingredientInput.value.trim().toLowerCase();
-                if (ingredientName && !appState.currentIngredients.includes(ingredientName)) {
-                    appState.currentIngredients.push(ingredientName);
-                    if (!appState.ingredients[ingredientName]) {
-                        const category = await getIngredientCategory(ingredientName);
-                        appState.ingredients[ingredientName] = category;
-                    }
-                    renderCurrentIngredients();
-                    ingredientInput.value = '';
-                    await saveData(); // Save after adding a new categorized ingredient
-                }
-            }
-        }
-        
-        async function handleFormSubmit(e) {
-            e.preventDefault();
-.trim();
-            if (!name || appState.currentIngredients.length === 0) return;
-
-            const id = dishIdInput.value;
-            if (id) {
-                const dish = appState.dishes.find(d => d.id === id);
-                if (dish) {
-                    dish.name = name;
-                    dish.ingredients = [...appState.currentIngredients];
-                }
-            } else {
-                appState.dishes.push({
-                    id: Date.now().toString(),
-                    name,
-                    ingredients: [...appState.currentIngredients]
-                });
-            }
-            await saveData();
-            resetForm();
-            // Realtime listener will handle re-rendering
-        }
-        
-        function resetForm() {
-            dishForm.reset();
-            dishIdInput.value = '';
-            appState.currentIngredients = [];
-            renderCurrentIngredients();
-            formTitle.textContent = 'Add a New Dish';
-            cancelEditBtn.classList.add('hidden');
-        }
-        
-        function editDish(id) {
-            const dish = appState.dishes.find(d => d.id === id);
-            if (dish) {
-                dishIdInput.value = dish.id;
-                dishNameInput.value = dish.name;
-                appState.currentIngredients = [...dish.ingredients];
-                renderCurrentIngredients();
-                formTitle.textContent = 'Edit Dish';
-                cancelEditBtn.classList.remove('hidden');
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }
-        
-        function cancelEdit() { resetForm(); }
-
-        async function deleteDish(id) {
-            appState.dishes = appState.dishes.filter(d => d.id !== id);
-            await saveData();
-            // Realtime listener will handle re-rendering
-        }
-
-        // --- Menu Page Functions ---
+        // --- MENU PAGE ---
         function renderMenuPage() {
-            renderIngredientFilters();
+            renderFilterTags();
             renderFilteredDishes();
         }
 
-        function renderIngredientFilters() {
-            ingredientCategoriesContainer.innerHTML = '';
-            const categories = { 'proteine': [], 'side': [], 'fruit/vegetable': [] };
-            
-            Object.keys(appState.ingredients).forEach(ing => {
-                const category = appState.ingredients[ing];
-                if (categories[category]) {
-                    categories[category].push(ing);
-                } else {
-                    categories['side'].push(ing); // Default to side
-                }
+        function renderFilterTags() {
+            const categories = ['protein', 'side', 'veggie'];
+            categories.forEach(category => {
+                const container = document.getElementById(`filter-${category}`);
+                container.innerHTML = '';
+                const sortedIngredients = Array.from(allIngredients[category]).sort();
+                sortedIngredients.forEach(ingredient => {
+                    const tag = createTag(ingredient, category, false);
+                    if (selectedIngredients[category].has(ingredient)) {
+                        tag.classList.add('tag-selected');
+                    }
+                    tag.addEventListener('click', () => {
+                        tag.classList.toggle('tag-selected');
+                        if (selectedIngredients[category].has(ingredient)) {
+                            selectedIngredients[category].delete(ingredient);
+                        } else {
+                            selectedIngredients[category].add(ingredient);
+                        }
+                        renderFilteredDishes();
+                    });
+                    container.appendChild(tag);
+                });
             });
-            
-            Object.keys(categories).forEach(cat => categories[cat].sort());
-
-            for (const category in categories) {
-                if (categories[category].length > 0) {
-                    const categoryDiv = document.createElement('div');
-                    categoryDiv.className = 'mb-6';
-                    let ingredientsHtml = categories[category].map(ing => `
-                         <div class="flex items-center">
-                            <input id="ing-${ing}" name="${ing}" type="checkbox" onchange="window.app.toggleIngredient('${ing}')" ${appState.selectedIngredients.has(ing) ? 'checked' : ''} class="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
-                            <label for="ing-${ing}" class="ml-3 block text-sm font-medium text-gray-700 capitalize">${ing}</label>
-                        </div>`).join('');
-
-                    const displayCategory = category.charAt(0).toUpperCase() + category.slice(1);
-                    categoryDiv.innerHTML = `
-                        <h3 class="font-semibold text-lg mb-3">${displayCategory}</h3>
-                        <div class="space-y-2">${ingredientsHtml}</div>`;
-                    ingredientCategoriesContainer.appendChild(categoryDiv);
-                }
-            }
-        }
-        
-        function toggleIngredient(ingredient) {
-            if (appState.selectedIngredients.has(ingredient)) appState.selectedIngredients.delete(ingredient);
-            else appState.selectedIngredients.add(ingredient);
-            renderFilteredDishes();
         }
 
         function renderFilteredDishes() {
-            dishResultsContainer.innerHTML = '';
-            const selectedArray = Array.from(appState.selectedIngredients);
+            menuDishListContainer.innerHTML = '';
+            const selectedProtein = Array.from(selectedIngredients.protein);
+            const selectedSide = Array.from(selectedIngredients.side);
+            const selectedVeggie = Array.from(selectedIngredients.veggie);
+
+            const hasSelection = selectedProtein.length > 0 || selectedSide.length > 0 || selectedVeggie.length > 0;
             
-            if(selectedArray.length === 0){
-                dishResultsContainer.innerHTML = `<p class="text-gray-500 md:col-span-3 text-center">Select some ingredients to see what you can cook!</p>`;
-                noDishesMessage.classList.add('hidden');
+            const filtered = dishes.filter(dish => {
+                if (!hasSelection) return true; // Show all if nothing is selected
+                
+                const hasAllProtein = selectedProtein.every(p => dish.protein.includes(p));
+                const hasAllSide = selectedSide.every(s => dish.side.includes(s));
+                const hasAllVeggie = selectedVeggie.every(v => dish.veggie.includes(v));
+                
+                return hasAllProtein && hasAllSide && hasAllVeggie;
+            });
+            
+            if (filtered.length === 0) {
+                 menuDishListContainer.innerHTML = `<p id="no-menu-msg" class="text-gray-400">${hasSelection ? 'No dishes match your selection.' : 'Select ingredients to see what you can cook!'}</p>`;
                 return;
             }
 
-            const possibleDishes = appState.dishes.filter(dish => dish.ingredients.every(ing => selectedArray.includes(ing)));
-
-            noDishesMessage.classList.toggle('hidden', possibleDishes.length > 0);
-
-            possibleDishes.forEach(dish => {
-                const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-lg shadow-sm border border-gray-200';
-                 card.innerHTML = `
-                    <h3 class="font-bold text-lg">${dish.name}</h3>
-                    <p class="text-sm text-gray-500 mt-2">Requires:</p>
-                    <div class="mt-2 flex flex-wrap gap-2">
-                        ${dish.ingredients.map(ing => `<span class="${getIngredientTagClasses(ing)} text-xs font-medium px-2.5 py-1 rounded-full capitalize">${ing}</span>`).join('')}
-                    </div>`;
-                dishResultsContainer.appendChild(card);
+            filtered.forEach(dish => {
+                const dishEl = document.createElement('div');
+                dishEl.className = 'bg-gray-700 p-3 rounded-lg';
+                dishEl.innerHTML = `
+                    <p class="font-semibold text-white">${dish.name}</p>
+                    <div class="flex flex-wrap mt-1">
+                        ${dish.protein.map(p => `<span class="tag tag-protein text-xs ${selectedIngredients.protein.has(p) ? 'font-bold' : ''}">${p}</span>`).join('')}
+                        ${dish.side.map(s => `<span class="tag tag-side text-xs ${selectedIngredients.side.has(s) ? 'font-bold' : ''}">${s}</span>`).join('')}
+                        ${dish.veggie.map(v => `<span class="tag tag-veggie text-xs ${selectedIngredients.veggie.has(v) ? 'font-bold' : ''}">${v}</span>`).join('')}
+                    </div>
+                `;
+                menuDishListContainer.appendChild(dishEl);
             });
         }
-        
-        // --- Initialization ---
-        
-        // Expose functions to global scope for onclick handlers
-        window.app = {
-            editDish,
-            deleteDish,
-            removeIngredientTag,
-            toggleIngredient,
-            cancelEdit
-        };
-        window.switchTab = switchTab;
 
-        function init() {
-            dishForm.addEventListener('submit', handleFormSubmit);
-            ingredientInput.addEventListener('keydown', handleIngredientAdd);
-            mainLoginButton.addEventListener('click', signInWithGoogle);
-            // onAuthStateChanged handles the initial UI state
+        // --- FORM HANDLING & TAGS ---
+        
+        // Ingredient Input Handlers
+        ingredientInputs.forEach(input => {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const value = input.value.trim();
+                    const category = input.dataset.category;
+                    if (value && !currentIngredients[category].includes(value)) {
+                        currentIngredients[category].push(value);
+                        renderCurrentIngredients();
+                    }
+                    input.value = '';
+                    hideAutocomplete(input);
+                }
+            });
+
+            input.addEventListener('input', () => showAutocomplete(input));
+            input.addEventListener('blur', () => setTimeout(() => hideAutocomplete(input), 150));
+        });
+
+        function showAutocomplete(input) {
+            hideAutocomplete(input);
+            const value = input.value.toLowerCase();
+            const category = input.dataset.category;
+            if (value.length === 0) return;
+
+            const suggestions = Array.from(allIngredients[category]).filter(item =>
+                item.toLowerCase().includes(value) && !currentIngredients[category].includes(item)
+            );
+
+            if (suggestions.length > 0) {
+                const suggestionsContainer = document.createElement('div');
+                suggestionsContainer.className = 'autocomplete-suggestions';
+                suggestions.forEach(suggestion => {
+                    const item = document.createElement('div');
+                    item.className = 'autocomplete-suggestion';
+                    item.textContent = suggestion;
+                    item.onclick = () => {
+                        if (!currentIngredients[category].includes(suggestion)) {
+                            currentIngredients[category].push(suggestion);
+                            renderCurrentIngredients();
+                        }
+                        input.value = '';
+                        hideAutocomplete(input);
+                        input.focus();
+                    };
+                    suggestionsContainer.appendChild(item);
+                });
+                input.parentNode.appendChild(suggestionsContainer);
+            }
+        }
+        
+        function hideAutocomplete(input) {
+            const existing = input.parentNode.querySelector('.autocomplete-suggestions');
+            if (existing) existing.remove();
         }
 
-        document.addEventListener('DOMContentLoaded', init);
+        function renderCurrentIngredients() {
+            Object.keys(currentIngredients).forEach(category => {
+                const container = document.getElementById(`${category}-tags`);
+                container.innerHTML = '';
+                currentIngredients[category].forEach(ingredient => {
+                    const tag = createTag(ingredient, category, true);
+                    tag.addEventListener('click', () => {
+                        currentIngredients[category] = currentIngredients[category].filter(i => i !== ingredient);
+                        renderCurrentIngredients();
+                    });
+                    container.appendChild(tag);
+                });
+            });
+        }
+
+        function createTag(text, category, withRemove) {
+            const tag = document.createElement('span');
+            tag.className = `tag tag-${category}`;
+            tag.textContent = text;
+            if (withRemove) {
+                const removeEl = document.createElement('span');
+                removeEl.className = 'tag-remove';
+                removeEl.innerHTML = '&times;';
+                tag.appendChild(removeEl);
+            }
+            return tag;
+        }
+
+        function resetForm() {
+            dishForm.reset();
+            currentIngredients = { protein: [], side: [], veggie: [] };
+            renderCurrentIngredients();
+            editingDishId = null;
+            formTitle.textContent = 'Create a New Dish';
+            saveDishButton.textContent = 'Save Dish';
+            cancelEditButton.classList.add('hidden');
+        }
+
+        cancelEditButton.addEventListener('click', resetForm);
+        
+        dishForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) {
+                showToast("Please connect with Google to save dishes.", "error");
+                return;
+            }
+
+            const dishData = {
+                name: dishNameInput.value.trim(),
+                protein: currentIngredients.protein,
+                side: currentIngredients.side,
+                veggie: currentIngredients.veggie,
+            };
+
+            if (!dishData.name) {
+                showToast("Dish name cannot be empty.", "error");
+                return;
+            }
+            
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+            
+            try {
+                if (editingDishId) {
+                    const dishRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes', editingDishId);
+                    await setDoc(dishRef, dishData);
+                    showToast("Dish updated successfully!");
+                } else {
+                    const dishesRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes');
+                    await addDoc(dishesRef, dishData);
+                    showToast("Dish saved successfully!");
+                }
+                resetForm();
+            } catch (error) {
+                console.error("Error saving dish:", error);
+                showToast("Failed to save dish.", "error");
+            }
+        });
+
+        function handleEdit(id) {
+            const dish = dishes.find(d => d.id === id);
+            if (dish) {
+                editingDishId = id;
+                dishNameInput.value = dish.name;
+                currentIngredients = {
+                    protein: [...dish.protein],
+                    side: [...dish.side],
+                    veggie: [...dish.veggie],
+                };
+                renderCurrentIngredients();
+                formTitle.textContent = 'Edit Dish';
+                saveDishButton.textContent = 'Update Dish';
+                cancelEditButton.classList.remove('hidden');
+                window.scrollTo(0, 0);
+            }
+        }
+        
+        async function handleDelete(id) {
+            if (!currentUser || !confirm("Are you sure you want to delete this dish?")) return;
+            try {
+                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+                const dishRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes', id);
+                await deleteDoc(dishRef);
+                showToast("Dish deleted.");
+                if (editingDishId === id) {
+                    resetForm();
+                }
+            } catch(error) {
+                console.error("Error deleting dish:", error);
+                showToast("Failed to delete dish.", "error");
+            }
+        }
+        
+        // --- UI UTILS ---
+        function showToast(message, type = 'success', duration = 3000) {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toast-message');
+
+            toast.classList.remove('bg-green-600', 'bg-red-600', 'bg-blue-600');
+            if (type === 'error') {
+                toast.classList.add('bg-red-600');
+            } else if (type === 'info') {
+                 toast.classList.add('bg-blue-600');
+            } else {
+                toast.classList.add('bg-green-600');
+            }
+            
+            toastMessage.textContent = message;
+            toast.classList.remove('opacity-0', 'translate-y-10');
+            
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-10');
+            }, duration);
+        }
+        
+        // Initial load
+        switchPage('database');
+
     </script>
 </body>
 </html>
-
-
