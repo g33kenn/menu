@@ -305,7 +305,7 @@
         function fetchDishes() {
             if (!currentUser) return;
             const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const dishesRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes');
+            const dishesRef = collection(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes');
             
             dishesUnsubscribe = onSnapshot(dishesRef, (snapshot) => {
                 dishes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -557,11 +557,11 @@
             
             try {
                 if (editingDishId) {
-                    const dishRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes', editingDishId);
+                    const dishRef = doc(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes', editingDishId);
                     await setDoc(dishRef, dishData);
                     showToast("Dish updated successfully!");
                 } else {
-                    const dishesRef = collection(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes');
+                    const dishesRef = collection(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes');
                     await addDoc(dishesRef, dishData);
                     showToast("Dish saved successfully!");
                 }
@@ -594,7 +594,7 @@
             if (!currentUser || !confirm("Are you sure you want to delete this dish?")) return;
             try {
                 const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const dishRef = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'dishes', id);
+                const dishRef = doc(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes', id);
                 await deleteDoc(dishRef);
                 showToast("Dish deleted.");
                 if (editingDishId === id) {
