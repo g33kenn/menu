@@ -3,156 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dish Dash: Database & Menu Planner</title>
+    <title>Dish Database & Menu Planner</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #111827;
-            color: #f3f4f6;
+        }
+        /* Simple scrollbar styling for a better dark mode experience */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
         .tag {
             display: inline-flex;
             align-items: center;
             padding: 4px 10px;
             border-radius: 9999px;
-            font-weight: 500;
             margin: 2px;
+            font-size: 14px;
+            font-weight: 500;
             cursor: pointer;
-            transition: all 0.2s ease-in-out;
         }
         .tag-protein { background-color: #ef4444; color: white; }
-        .tag-side { background-color: #f59e0b; color: #111827; }
+        .tag-side { background-color: #f59e0b; color: white; }
         .tag-veggie { background-color: #22c55e; color: white; }
         .tag-remove {
             margin-left: 8px;
-            font-weight: bold;
-            opacity: 0.7;
-        }
-        .tag-remove:hover {
-            opacity: 1;
-        }
-        .tag-selected {
-            box-shadow: 0 0 0 3px #3b82f6;
-        }
-        .nav-button {
-            padding: 8px 16px;
-            border-radius: 8px;
-            transition: background-color 0.2s;
-        }
-        .nav-button.active {
-            background-color: #374151;
-        }
-        .nav-button:not(.active):hover {
-            background-color: #1f2937;
-        }
-        .autocomplete-suggestions {
-            position: absolute;
-            border: 1px solid #4b5563;
-            background-color: #1f2937;
-            z-index: 99;
-            max-height: 150px;
-            overflow-y: auto;
-            border-radius: 8px;
-            margin-top: 4px;
-        }
-        .autocomplete-suggestion {
-            padding: 8px 12px;
-            cursor: pointer;
-        }
-        .autocomplete-suggestion:hover {
-            background-color: #374151;
-        }
-        /* Custom scrollbar for webkit browsers */
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 8px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: #1f2937;
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: #4b5563;
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #6b7280;
-        }
-        /* Hide spinner from number input */
-        input[type='number']::-webkit-inner-spin-button,
-        input[type='number']::-webkit-outer-spin-button {
-          -webkit-appearance: none;
-          margin: 0;
-        }
-        input[type='number'] {
-          -moz-appearance: textfield;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background-color: rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            line-height: 1;
         }
     </style>
 </head>
-<body class="antialiased">
+<body class="bg-gray-900 text-gray-200">
 
-    <div id="app" class="min-h-screen flex flex-col p-4 md:p-8">
-        <!-- Header -->
-        <header class="flex justify-between items-center mb-6">
-            <div class="flex items-center space-x-2">
-                <svg class="w-8 h-8 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 0 1 0 3.75H5.625a1.875 1.875 0 0 1 0-3.75Z" />
-                </svg>
-                <h1 class="text-2xl font-bold text-gray-100">Dish Dash</h1>
-                <nav class="ml-6 bg-gray-800 rounded-lg p-1 flex space-x-1">
-                    <button id="nav-database" class="nav-button active">Database</button>
-                    <button id="nav-menu" class="nav-button">Menu</button>
-                </nav>
-            </div>
-            <button id="auth-button" class="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">
-                Connect with Google
+    <!-- Login View -->
+    <div id="login-view" class="flex items-center justify-center h-screen">
+        <div class="text-center p-8 bg-gray-800 rounded-lg shadow-xl">
+            <h1 class="text-3xl font-bold mb-4 text-white">Dish Planner</h1>
+            <p class="text-gray-400 mb-6">Sign in to manage your personal dish database.</p>
+            <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center mx-auto">
+                <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v8.51h12.8c-.57 3.02-2.31 5.45-4.92 7.18l7.98 6.19c4.63-4.28 7.3-10.39 7.3-17.33z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.98-6.19c-2.11 1.45-4.8 2.3-7.91 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
+                Sign in with Google
             </button>
-        </header>
+        </div>
+    </div>
 
-        <main class="flex-grow">
+    <!-- Main App View -->
+    <div id="app-view" class="hidden h-screen flex flex-col">
+        <header class="bg-gray-800 shadow-md p-4 flex justify-between items-center">
+            <h1 class="text-xl font-bold text-white">Dish Planner</h1>
+            <div class="flex items-center">
+                 <div id="user-info" class="text-sm text-gray-400 mr-4"></div>
+                <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">Logout</button>
+            </div>
+        </header>
+        
+        <nav class="bg-gray-800 border-t border-b border-gray-700">
+            <div class="max-w-7xl mx-auto px-4">
+                <div class="flex items-center justify-center h-16">
+                    <button id="btn-database" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Database</button>
+                    <button id="btn-menu" class="ml-4 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Menu</button>
+                </div>
+            </div>
+        </nav>
+
+        <main class="flex-grow p-4 md:p-6 overflow-y-auto">
             <!-- Database Page -->
             <div id="page-database">
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <!-- Dish Creation Form -->
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 id="form-title" class="text-xl font-semibold mb-4">Create a New Dish</h2>
-                        <form id="dish-form" class="space-y-4">
-                            <div>
-                                <label for="dish-name" class="block text-sm font-medium text-gray-300">Name of the Dish</label>
-                                <input type="text" id="dish-name" class="mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" required>
+                        <h2 id="form-title" class="text-2xl font-bold mb-4 text-white">Create New Dish</h2>
+                        <form id="dish-form">
+                            <input type="hidden" id="dish-id">
+                            <div class="mb-4">
+                                <label for="dish-name" class="block text-sm font-medium text-gray-300 mb-1">Dish Name</label>
+                                <input type="text" id="dish-name" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
                             </div>
                             <!-- Ingredient Inputs -->
-                            <div class="relative">
-                                <label for="protein-input" class="block text-sm font-medium text-gray-300">Protein</label>
-                                <input type="text" id="protein-input" data-category="protein" class="ingredient-input mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-red-500 focus:border-red-500" placeholder="Type and press Enter">
-                                <div id="protein-tags" class="mt-2 min-h-[36px]"></div>
+                            <div class="mb-4 relative">
+                                <label for="protein-input" class="block text-sm font-medium text-gray-300 mb-1">Protein (press Enter to add)</label>
+                                <input type="text" id="protein-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-red-500" autocomplete="off">
+                                <div id="protein-autocomplete" class="absolute z-10 w-full bg-gray-600 rounded-b-md shadow-lg hidden"></div>
+                                <div id="protein-tags" class="mt-2"></div>
                             </div>
-                            <div class="relative">
-                                <label for="side-input" class="block text-sm font-medium text-gray-300">Side</label>
-                                <input type="text" id="side-input" data-category="side" class="ingredient-input mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-yellow-500 focus:border-yellow-500" placeholder="Type and press Enter">
-                                <div id="side-tags" class="mt-2 min-h-[36px]"></div>
+                            <div class="mb-4 relative">
+                                <label for="side-input" class="block text-sm font-medium text-gray-300 mb-1">Side (press Enter to add)</label>
+                                <input type="text" id="side-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-yellow-500" autocomplete="off">
+                                <div id="side-autocomplete" class="absolute z-10 w-full bg-gray-600 rounded-b-md shadow-lg hidden"></div>
+                                <div id="side-tags" class="mt-2"></div>
                             </div>
-                            <div class="relative">
-                                <label for="veggie-input" class="block text-sm font-medium text-gray-300">Veggie</label>
-                                <input type="text" id="veggie-input" data-category="veggie" class="ingredient-input mt-1 block w-full bg-gray-700 border border-gray-600 rounded-md shadow-sm py-2 px-3 text-white focus:outline-none focus:ring-green-500 focus:border-green-500" placeholder="Type and press Enter">
-                                <div id="veggie-tags" class="mt-2 min-h-[36px]"></div>
+                            <div class="mb-4 relative">
+                                <label for="veggie-input" class="block text-sm font-medium text-gray-300 mb-1">Veggie (press Enter to add)</label>
+                                <input type="text" id="veggie-input" class="w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-green-500" autocomplete="off">
+                                <div id="veggie-autocomplete" class="absolute z-10 w-full bg-gray-600 rounded-b-md shadow-lg hidden"></div>
+                                <div id="veggie-tags" class="mt-2"></div>
                             </div>
                             <div class="flex space-x-2">
-                                <button type="submit" id="save-dish-button" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Save Dish</button>
-                                <button type="button" id="cancel-edit-button" class="w-full hidden bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors">Cancel</button>
+                                <button type="submit" id="save-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md">Save Dish</button>
+                                <button type="button" id="clear-btn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md">Clear</button>
                             </div>
                         </form>
                     </div>
 
-                    <!-- Dish List -->
+                    <!-- Existing Dishes List -->
                     <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-xl font-semibold mb-4">My Dishes</h2>
-                        <div id="dish-list" class="space-y-3 max-h-[65vh] overflow-y-auto custom-scrollbar pr-2">
-                           <!-- Dishes will be dynamically inserted here -->
-                           <p id="no-dishes-msg" class="text-gray-400">No dishes created yet. Add one to get started!</p>
+                        <h2 class="text-2xl font-bold mb-4 text-white">Your Dishes</h2>
+                        <div id="dishes-list" class="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
+                            <!-- Dish items will be populated here -->
                         </div>
                     </div>
                 </div>
@@ -160,477 +135,462 @@
 
             <!-- Menu Page -->
             <div id="page-menu" class="hidden">
-                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     <!-- Ingredient Filters -->
-                    <div class="lg:col-span-1 bg-gray-800 p-6 rounded-lg shadow-lg h-fit">
-                        <h2 class="text-xl font-semibold mb-4">Available Ingredients</h2>
-                        <div id="ingredient-filters" class="space-y-4">
-                            <div>
-                                <h3 class="font-semibold text-red-400">Protein</h3>
-                                <div id="filter-protein" class="flex flex-wrap gap-2 mt-2"></div>
-                            </div>
-                             <div>
-                                <h3 class="font-semibold text-yellow-400">Side</h3>
-                                <div id="filter-side" class="flex flex-wrap gap-2 mt-2"></div>
-                            </div>
-                             <div>
-                                <h3 class="font-semibold text-green-400">Veggie</h3>
-                                <div id="filter-veggie" class="flex flex-wrap gap-2 mt-2"></div>
-                            </div>
+                    <div class="md:col-span-1 lg:col-span-1 bg-gray-800 p-6 rounded-lg shadow-lg">
+                        <h2 class="text-2xl font-bold mb-4 text-white">Available Ingredients</h2>
+                        <p class="text-sm text-gray-400 mb-4">Click ingredients you have to find what you can cook.</p>
+                        <div>
+                            <h3 class="text-lg font-semibold mt-4 mb-2 text-red-400">Proteins</h3>
+                            <div id="menu-filters-protein" class="flex flex-wrap gap-2"></div>
+                            <h3 class="text-lg font-semibold mt-4 mb-2 text-yellow-400">Sides</h3>
+                            <div id="menu-filters-side" class="flex flex-wrap gap-2"></div>
+                            <h3 class="text-lg font-semibold mt-4 mb-2 text-green-400">Veggies</h3>
+                            <div id="menu-filters-veggie" class="flex flex-wrap gap-2"></div>
                         </div>
                     </div>
-
-                    <!-- Available Dishes -->
-                    <div class="lg:col-span-2 bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-xl font-semibold mb-4">What you can cook</h2>
-                        <div id="menu-dish-list" class="space-y-2 max-h-[70vh] overflow-y-auto custom-scrollbar pr-2">
-                            <!-- Filtered dishes will appear here -->
-                             <p id="no-menu-msg" class="text-gray-400">Select ingredients to see what you can cook!</p>
+                    <!-- Filtered Dishes -->
+                    <div class="md:col-span-2 lg:col-span-3 bg-gray-800 p-6 rounded-lg shadow-lg">
+                         <div class="flex justify-between items-center mb-4">
+                            <h2 class="text-2xl font-bold text-white">Available Dishes</h2>
+                            <div id="dish-count" class="text-sm text-gray-400"></div>
+                        </div>
+                        <div id="menu-dishes-list" class="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
+                           <!-- Filtered dishes will be populated here -->
                         </div>
                     </div>
                 </div>
             </div>
         </main>
-        
-        <!-- Toast Notification -->
-        <div id="toast" class="fixed bottom-5 right-5 bg-green-600 text-white py-2 px-5 rounded-lg shadow-xl text-sm font-semibold opacity-0 transform translate-y-10 transition-all duration-300">
-            <p id="toast-message">Success!</p>
-        </div>
     </div>
 
-    <script>
-        (function() {
-            let appId = localStorage.getItem('dishDashAppId');
-            if (!appId) {
-                // Basic UUID generator
-                appId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-                    return v.toString(16);
-                });
-                localStorage.setItem('dishDashAppId', appId);
-            }
-            window.__app_id = appId;
-            console.log('Dish Dash App ID:', window.__app_id);
-        })();
-    </script>
+    <!-- Firebase SDKs -->
     <script type="module">
-        // Firebase Imports
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, doc, addDoc, setDoc, deleteDoc, onSnapshot, query, setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-
-        // Your web app's Firebase configuration
+        // IMPORTANT: Replace the following with your app's Firebase project configuration
         const firebaseConfig = {
-          apiKey: "AIzaSyCIVdjx95c7v-40t0TmhqWm3467F1BAkHg",
-          authDomain: "menu-cf506.firebaseapp.com",
-          projectId: "menu-cf506",
-          storageBucket: "menu-cf506.firebasestorage.app",
-          messagingSenderId: "568101794661",
-          appId: "1:568101794661:web:293d9c6cff80ea6e5d678c"
+            apiKey: "YOUR_API_KEY",
+            authDomain: "YOUR_AUTH_DOMAIN",
+            projectId: "YOUR_PROJECT_ID",
+            storageBucket: "YOUR_STORAGE_BUCKET",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId: "YOUR_APP_ID"
         };
-        
+
+        // Import functions from the SDKs
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { 
+            getAuth, 
+            GoogleAuthProvider, 
+            signInWithPopup, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { 
+            getFirestore, 
+            collection, 
+            doc, 
+            addDoc, 
+            setDoc,
+            deleteDoc,
+            onSnapshot,
+            query,
+            getDoc,
+            runTransaction
+        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
         // Initialize Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        setLogLevel('debug');
+        const provider = new GoogleAuthProvider();
 
-        // App state
+        // --- App State ---
         let currentUser = null;
-        let dishesUnsubscribe = null;
         let dishes = [];
-        let editingDishId = null;
-        let allIngredients = { protein: new Set(), side: new Set(), veggie: new Set() };
-        let selectedIngredients = { protein: new Set(), side: new Set(), veggie: new Set() };
-        let currentIngredients = { protein: [], side: [], veggie: [] };
+        let allIngredients = { protein: [], side: [], veggie: [] };
+        let selectedMenuFilters = [];
+
+        // --- UI Elements ---
+        const loginView = document.getElementById('login-view');
+        const appView = document.getElementById('app-view');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const userInfo = document.getElementById('user-info');
         
-        // DOM Elements
-        const authButton = document.getElementById('auth-button');
-        const navDatabase = document.getElementById('nav-database');
-        const navMenu = document.getElementById('nav-menu');
+        const btnDatabase = document.getElementById('btn-database');
+        const btnMenu = document.getElementById('btn-menu');
         const pageDatabase = document.getElementById('page-database');
         const pageMenu = document.getElementById('page-menu');
+
         const dishForm = document.getElementById('dish-form');
         const formTitle = document.getElementById('form-title');
+        const dishIdInput = document.getElementById('dish-id');
         const dishNameInput = document.getElementById('dish-name');
-        const saveDishButton = document.getElementById('save-dish-button');
-        const cancelEditButton = document.getElementById('cancel-edit-button');
-        const dishListContainer = document.getElementById('dish-list');
-        const menuDishListContainer = document.getElementById('menu-dish-list');
-        const ingredientInputs = document.querySelectorAll('.ingredient-input');
+        const saveBtn = document.getElementById('save-btn');
+        const clearBtn = document.getElementById('clear-btn');
         
-        // --- AUTHENTICATION ---
+        const dishesListContainer = document.getElementById('dishes-list');
+        const menuDishesListContainer = document.getElementById('menu-dishes-list');
+        const dishCount = document.getElementById('dish-count');
+
+        const ingredientInputs = {
+            protein: document.getElementById('protein-input'),
+            side: document.getElementById('side-input'),
+            veggie: document.getElementById('veggie-input')
+        };
+        const tagContainers = {
+            protein: document.getElementById('protein-tags'),
+            side: document.getElementById('side-tags'),
+            veggie: document.getElementById('veggie-tags')
+        };
+        const autocompleteContainers = {
+             protein: document.getElementById('protein-autocomplete'),
+             side: document.getElementById('side-autocomplete'),
+             veggie: document.getElementById('veggie-autocomplete')
+        };
+        const menuFilterContainers = {
+            protein: document.getElementById('menu-filters-protein'),
+            side: document.getElementById('menu-filters-side'),
+            veggie: document.getElementById('menu-filters-veggie')
+        };
+        
+        // --- Authentication ---
         onAuthStateChanged(auth, (user) => {
-            currentUser = user;
             if (user) {
-                authButton.textContent = 'Sign Out';
-                fetchDishes();
+                currentUser = user;
+                loginView.classList.add('hidden');
+                appView.classList.remove('hidden');
+                userInfo.textContent = `Welcome, ${user.displayName.split(' ')[0]}!`;
+                initializeAppState();
             } else {
-                authButton.textContent = 'Connect with Google';
-                if (dishesUnsubscribe) dishesUnsubscribe();
-                dishes = [];
-                renderAll();
-                showToast("Demo mode. Connect with Google to save your dishes.", "info", 5000);
+                currentUser = null;
+                loginView.classList.remove('hidden');
+                appView.classList.add('hidden');
             }
         });
 
-        authButton.addEventListener('click', () => {
-            if (currentUser) {
-                signOut(auth);
-            } else {
-                const provider = new GoogleAuthProvider();
-                signInWithPopup(auth, provider).catch(error => console.error("Auth Error:", error));
-            }
-        });
-        
-        // --- NAVIGATION ---
-        function switchPage(page) {
-            if (page === 'database') {
-                pageDatabase.classList.remove('hidden');
-                pageMenu.classList.add('hidden');
-                navDatabase.classList.add('active');
-                navMenu.classList.remove('active');
-            } else {
-                pageDatabase.classList.add('hidden');
-                pageMenu.classList.remove('hidden');
-                navDatabase.classList.remove('active');
-                navMenu.classList.add('active');
-                renderMenuPage(); // Re-render menu page on switch to reflect latest data
-            }
-        }
-        navDatabase.addEventListener('click', () => switchPage('database'));
-        navMenu.addEventListener('click', () => switchPage('menu'));
+        loginBtn.addEventListener('click', () => signInWithPopup(auth, provider));
+        logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // --- DATA HANDLING ---
-        function fetchDishes() {
+        // --- App Initialization ---
+        function initializeAppState() {
             if (!currentUser) return;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            const dishesRef = collection(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes');
-            
-            dishesUnsubscribe = onSnapshot(dishesRef, (snapshot) => {
+            // Listen for real-time updates on dishes
+            const dishesCollection = collection(db, 'users', currentUser.uid, 'dishes');
+            onSnapshot(query(dishesCollection), (snapshot) => {
                 dishes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                calculateAllIngredients();
-                renderAll();
-            }, error => {
-                console.error("Error fetching dishes:", error);
-                showToast("Could not fetch dishes.", "error");
+                renderDishesLists();
+                filterAndRenderMenuDishes();
+            });
+            
+            // Listen for real-time updates on ingredients
+            const ingredientsDoc = doc(db, 'users', currentUser.uid, 'ingredients', 'all');
+            onSnapshot(ingredientsDoc, (doc) => {
+                if(doc.exists()) {
+                    allIngredients = doc.data();
+                } else {
+                    allIngredients = { protein: [], side: [], veggie: [] };
+                }
+                renderMenuFilters();
             });
         }
         
-        function calculateAllIngredients() {
-            allIngredients = { protein: new Set(), side: new Set(), veggie: new Set() };
-            dishes.forEach(dish => {
-                dish.protein?.forEach(item => allIngredients.protein.add(item));
-                dish.side?.forEach(item => allIngredients.side.add(item));
-                dish.veggie?.forEach(item => allIngredients.veggie.add(item));
-            });
+        // --- Page Navigation ---
+        function showPage(pageName) {
+            pageDatabase.classList.toggle('hidden', pageName !== 'database');
+            pageMenu.classList.toggle('hidden', pageName !== 'menu');
+            btnDatabase.classList.toggle('bg-gray-900', pageName === 'database');
+            btnMenu.classList.toggle('bg-gray-900', pageName === 'menu');
         }
-        
-        function renderAll() {
-            renderDatabasePage();
-            renderMenuPage();
-        }
+        btnDatabase.addEventListener('click', () => showPage('database'));
+        btnMenu.addEventListener('click', () => showPage('menu'));
+        showPage('database'); // Default page
 
-        // --- DATABASE PAGE ---
-        function renderDatabasePage() {
-            dishListContainer.innerHTML = '';
-            if (dishes.length === 0) {
-                 dishListContainer.innerHTML = `<p id="no-dishes-msg" class="text-gray-400">No dishes created yet. Add one to get started!</p>`;
-                 return;
+
+        // --- Rendering Functions ---
+        function renderTag(text, category, container, isRemovable = true) {
+            const tag = document.createElement('div');
+            tag.textContent = text;
+            tag.className = `tag tag-${category}`;
+            if (isRemovable) {
+                tag.dataset.value = text;
+                const removeBtn = document.createElement('span');
+                removeBtn.textContent = 'x';
+                removeBtn.className = 'tag-remove';
+                removeBtn.onclick = () => tag.remove();
+                tag.appendChild(removeBtn);
             }
+            container.appendChild(tag);
+        }
 
+        function renderDishesLists() {
+            renderDatabaseDishList();
+            filterAndRenderMenuDishes();
+        }
+
+        function renderDatabaseDishList() {
+            dishesListContainer.innerHTML = '';
+             if (dishes.length === 0) {
+                dishesListContainer.innerHTML = `<p class="text-gray-400">No dishes created yet. Add one to get started!</p>`;
+                return;
+            }
             dishes.forEach(dish => {
-                const dishEl = document.createElement('div');
-                dishEl.className = 'bg-gray-700 p-3 rounded-lg flex justify-between items-center';
-                dishEl.innerHTML = `
+                const div = document.createElement('div');
+                div.className = 'bg-gray-700 p-4 rounded-lg flex justify-between items-start';
+                div.innerHTML = `
                     <div>
-                        <p class="font-semibold text-white">${dish.name}</p>
-                        <div class="flex flex-wrap mt-1">
-                            ${dish.protein.map(p => `<span class="tag tag-protein text-xs">${p}</span>`).join('')}
-                            ${dish.side.map(s => `<span class="tag tag-side text-xs">${s}</span>`).join('')}
-                            ${dish.veggie.map(v => `<span class="tag tag-veggie text-xs">${v}</span>`).join('')}
+                        <h4 class="font-bold text-lg text-white">${dish.name}</h4>
+                        <div class="flex flex-wrap mt-2">
+                            ${dish.protein.map(p => `<span class="tag tag-protein">${p}</span>`).join('')}
+                            ${dish.side.map(s => `<span class="tag tag-side">${s}</span>`).join('')}
+                            ${dish.veggie.map(v => `<span class="tag tag-veggie">${v}</span>`).join('')}
                         </div>
                     </div>
-                    <div class="flex space-x-2">
-                        <button class="edit-btn p-2 rounded-md hover:bg-gray-600" data-id="${dish.id}">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.414 2.586a2 2 0 00-2.828 0L7 10.172V13h2.828l7.586-7.586a2 2 0 000-2.828zM5 12V7a2 2 0 012-2h2.586l-4.293 4.293A2 2 0 015 12zM3 15a2 2 0 012-2h10a2 2 0 012 2v2a2 2 0 01-2 2H5a2 2 0 01-2-2v-2z"></path></svg>
-                        </button>
-                        <button class="delete-btn p-2 rounded-md hover:bg-gray-600 text-red-400" data-id="${dish.id}">
-                            <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd"></path></svg>
-                        </button>
+                    <div class="flex-shrink-0 ml-4">
+                        <button class="edit-btn text-blue-400 hover:text-blue-300 mr-2" data-id="${dish.id}">Edit</button>
+                        <button class="delete-btn text-red-400 hover:text-red-300" data-id="${dish.id}">Delete</button>
                     </div>
                 `;
-                dishEl.querySelector('.edit-btn').addEventListener('click', () => handleEdit(dish.id));
-                dishEl.querySelector('.delete-btn').addEventListener('click', () => handleDelete(dish.id));
-                dishListContainer.appendChild(dishEl);
+                dishesListContainer.appendChild(div);
             });
         }
         
-        // --- MENU PAGE ---
-        function renderMenuPage() {
-            renderFilterTags();
-            renderFilteredDishes();
-        }
-
-        function renderFilterTags() {
-            const categories = ['protein', 'side', 'veggie'];
-            categories.forEach(category => {
-                const container = document.getElementById(`filter-${category}`);
+        function renderMenuFilters() {
+            Object.keys(menuFilterContainers).forEach(category => {
+                const container = menuFilterContainers[category];
                 container.innerHTML = '';
-                const sortedIngredients = Array.from(allIngredients[category]).sort();
-                sortedIngredients.forEach(ingredient => {
-                    const tag = createTag(ingredient, category, false);
-                    if (selectedIngredients[category].has(ingredient)) {
-                        tag.classList.add('tag-selected');
-                    }
-                    tag.addEventListener('click', () => {
-                        tag.classList.toggle('tag-selected');
-                        if (selectedIngredients[category].has(ingredient)) {
-                            selectedIngredients[category].delete(ingredient);
-                        } else {
-                            selectedIngredients[category].add(ingredient);
-                        }
-                        renderFilteredDishes();
-                    });
+                const ingredients = allIngredients[category] || [];
+                ingredients.sort().forEach(ingredient => {
+                    const tag = document.createElement('div');
+                    tag.textContent = ingredient;
+                    tag.className = `tag tag-${category} opacity-60 hover:opacity-100 transition-opacity`;
+                    tag.dataset.ingredient = ingredient;
+                    tag.addEventListener('click', handleMenuFilterClick);
                     container.appendChild(tag);
                 });
             });
         }
 
-        function renderFilteredDishes() {
-            menuDishListContainer.innerHTML = '';
-            const selectedProtein = Array.from(selectedIngredients.protein);
-            const selectedSide = Array.from(selectedIngredients.side);
-            const selectedVeggie = Array.from(selectedIngredients.veggie);
+        function filterAndRenderMenuDishes() {
+            let filteredDishes = dishes;
+            if (selectedMenuFilters.length > 0) {
+                filteredDishes = dishes.filter(dish => {
+                    const dishIngredients = [...dish.protein, ...dish.side, ...dish.veggie];
+                    return selectedMenuFilters.every(filter => dishIngredients.includes(filter));
+                });
+            }
+            menuDishesListContainer.innerHTML = '';
+            dishCount.textContent = `${filteredDishes.length} of ${dishes.length} dishes shown`;
 
-            const hasSelection = selectedProtein.length > 0 || selectedSide.length > 0 || selectedVeggie.length > 0;
-            
-            const filtered = dishes.filter(dish => {
-                if (!hasSelection) return true; // Show all if nothing is selected
-                
-                const hasAllProtein = selectedProtein.every(p => dish.protein.includes(p));
-                const hasAllSide = selectedSide.every(s => dish.side.includes(s));
-                const hasAllVeggie = selectedVeggie.every(v => dish.veggie.includes(v));
-                
-                return hasAllProtein && hasAllSide && hasAllVeggie;
-            });
-            
-            if (filtered.length === 0) {
-                 menuDishListContainer.innerHTML = `<p id="no-menu-msg" class="text-gray-400">${hasSelection ? 'No dishes match your selection.' : 'Select ingredients to see what you can cook!'}</p>`;
+            if (filteredDishes.length === 0) {
+                menuDishesListContainer.innerHTML = `<p class="text-gray-400">No dishes match your selected ingredients.</p>`;
                 return;
             }
-
-            filtered.forEach(dish => {
-                const dishEl = document.createElement('div');
-                dishEl.className = 'bg-gray-700 p-3 rounded-lg';
-                dishEl.innerHTML = `
-                    <p class="font-semibold text-white">${dish.name}</p>
-                    <div class="flex flex-wrap mt-1">
-                        ${dish.protein.map(p => `<span class="tag tag-protein text-xs ${selectedIngredients.protein.has(p) ? 'font-bold' : ''}">${p}</span>`).join('')}
-                        ${dish.side.map(s => `<span class="tag tag-side text-xs ${selectedIngredients.side.has(s) ? 'font-bold' : ''}">${s}</span>`).join('')}
-                        ${dish.veggie.map(v => `<span class="tag tag-veggie text-xs ${selectedIngredients.veggie.has(v) ? 'font-bold' : ''}">${v}</span>`).join('')}
+            
+            filteredDishes.forEach(dish => {
+                const div = document.createElement('div');
+                div.className = 'bg-gray-700 p-4 rounded-lg';
+                 div.innerHTML = `
+                    <h4 class="font-bold text-lg text-white">${dish.name}</h4>
+                    <div class="flex flex-wrap mt-2">
+                        ${dish.protein.map(p => `<span class="tag tag-protein">${p}</span>`).join('')}
+                        ${dish.side.map(s => `<span class="tag tag-side">${s}</span>`).join('')}
+                        ${dish.veggie.map(v => `<span class="tag tag-veggie">${v}</span>`).join('')}
                     </div>
                 `;
-                menuDishListContainer.appendChild(dishEl);
+                menuDishesListContainer.appendChild(div);
             });
         }
 
-        // --- FORM HANDLING & TAGS ---
-        
-        // Ingredient Input Handlers
-        ingredientInputs.forEach(input => {
+        // --- Event Handlers ---
+        // Handle adding ingredient tags
+        Object.keys(ingredientInputs).forEach(category => {
+            const input = ingredientInputs[category];
             input.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter') {
                     e.preventDefault();
-                    const value = input.value.trim();
-                    const category = input.dataset.category;
-                    if (value && !currentIngredients[category].includes(value)) {
-                        currentIngredients[category].push(value);
-                        renderCurrentIngredients();
-                    }
-                    input.value = '';
-                    hideAutocomplete(input);
-                }
-            });
-
-            input.addEventListener('input', () => showAutocomplete(input));
-            input.addEventListener('blur', () => setTimeout(() => hideAutocomplete(input), 150));
-        });
-
-        function showAutocomplete(input) {
-            hideAutocomplete(input);
-            const value = input.value.toLowerCase();
-            const category = input.dataset.category;
-            if (value.length === 0) return;
-
-            const suggestions = Array.from(allIngredients[category]).filter(item =>
-                item.toLowerCase().includes(value) && !currentIngredients[category].includes(item)
-            );
-
-            if (suggestions.length > 0) {
-                const suggestionsContainer = document.createElement('div');
-                suggestionsContainer.className = 'autocomplete-suggestions';
-                suggestions.forEach(suggestion => {
-                    const item = document.createElement('div');
-                    item.className = 'autocomplete-suggestion';
-                    item.textContent = suggestion;
-                    item.onclick = () => {
-                        if (!currentIngredients[category].includes(suggestion)) {
-                            currentIngredients[category].push(suggestion);
-                            renderCurrentIngredients();
+                    const value = input.value.trim().toLowerCase();
+                    if (value) {
+                        const existingTags = Array.from(tagContainers[category].children).map(t => t.dataset.value);
+                        if (!existingTags.includes(value)) {
+                            renderTag(value, category, tagContainers[category]);
                         }
                         input.value = '';
-                        hideAutocomplete(input);
-                        input.focus();
-                    };
-                    suggestionsContainer.appendChild(item);
-                });
-                input.parentNode.appendChild(suggestionsContainer);
-            }
-        }
-        
-        function hideAutocomplete(input) {
-            const existing = input.parentNode.querySelector('.autocomplete-suggestions');
-            if (existing) existing.remove();
-        }
-
-        function renderCurrentIngredients() {
-            Object.keys(currentIngredients).forEach(category => {
-                const container = document.getElementById(`${category}-tags`);
-                container.innerHTML = '';
-                currentIngredients[category].forEach(ingredient => {
-                    const tag = createTag(ingredient, category, true);
-                    tag.addEventListener('click', () => {
-                        currentIngredients[category] = currentIngredients[category].filter(i => i !== ingredient);
-                        renderCurrentIngredients();
-                    });
-                    container.appendChild(tag);
-                });
+                        hideAutocomplete(category);
+                    }
+                }
             });
-        }
-
-        function createTag(text, category, withRemove) {
-            const tag = document.createElement('span');
-            tag.className = `tag tag-${category}`;
-            tag.textContent = text;
-            if (withRemove) {
-                const removeEl = document.createElement('span');
-                removeEl.className = 'tag-remove';
-                removeEl.innerHTML = '&times;';
-                tag.appendChild(removeEl);
-            }
-            return tag;
-        }
-
-        function resetForm() {
-            dishForm.reset();
-            currentIngredients = { protein: [], side: [], veggie: [] };
-            renderCurrentIngredients();
-            editingDishId = null;
-            formTitle.textContent = 'Create a New Dish';
-            saveDishButton.textContent = 'Save Dish';
-            cancelEditButton.classList.add('hidden');
-        }
-
-        cancelEditButton.addEventListener('click', resetForm);
+        });
         
+        // Handle form submission
         dishForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            if (!currentUser) {
-                showToast("Please connect with Google to save dishes.", "error");
-                return;
-            }
+            if (!currentUser) return;
 
             const dishData = {
                 name: dishNameInput.value.trim(),
-                protein: currentIngredients.protein,
-                side: currentIngredients.side,
-                veggie: currentIngredients.veggie,
+                protein: Array.from(tagContainers.protein.children).map(t => t.dataset.value),
+                side: Array.from(tagContainers.side.children).map(t => t.dataset.value),
+                veggie: Array.from(tagContainers.veggie.children).map(t => t.dataset.value)
             };
-
+            
             if (!dishData.name) {
-                showToast("Dish name cannot be empty.", "error");
+                alert("Please enter a dish name.");
                 return;
             }
-            
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-            
+
+            const id = dishIdInput.value;
+            const dishesCollection = collection(db, 'users', currentUser.uid, 'dishes');
+
             try {
-                if (editingDishId) {
-                    const dishRef = doc(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes', editingDishId);
-                    await setDoc(dishRef, dishData);
-                    showToast("Dish updated successfully!");
-                } else {
-                    const dishesRef = collection(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes');
-                    await addDoc(dishesRef, dishData);
-                    showToast("Dish saved successfully!");
+                if (id) { // Update existing dish
+                    await setDoc(doc(dishesCollection, id), dishData);
+                } else { // Create new dish
+                    await addDoc(dishesCollection, dishData);
                 }
-                resetForm();
+                
+                await updateIngredientsMetadata(dishData);
+                clearForm();
+
             } catch (error) {
-                console.error("Error saving dish:", error);
-                showToast("Failed to save dish.", "error");
+                console.error("Error saving dish: ", error);
+                alert("There was an error saving your dish.");
             }
         });
-
-        function handleEdit(id) {
-            const dish = dishes.find(d => d.id === id);
-            if (dish) {
-                editingDishId = id;
-                dishNameInput.value = dish.name;
-                currentIngredients = {
-                    protein: [...dish.protein],
-                    side: [...dish.side],
-                    veggie: [...dish.veggie],
-                };
-                renderCurrentIngredients();
-                formTitle.textContent = 'Edit Dish';
-                saveDishButton.textContent = 'Update Dish';
-                cancelEditButton.classList.remove('hidden');
-                window.scrollTo(0, 0);
-            }
-        }
         
-        async function handleDelete(id) {
-            if (!currentUser || !confirm("Are you sure you want to delete this dish?")) return;
-            try {
-                const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-                const dishRef = doc(db, 'dish_data', appId, 'users', currentUser.uid, 'dishes', id);
-                await deleteDoc(dishRef);
-                showToast("Dish deleted.");
-                if (editingDishId === id) {
-                    resetForm();
+        // Handle edit and delete buttons
+        dishesListContainer.addEventListener('click', (e) => {
+            const target = e.target;
+            const id = target.dataset.id;
+            if (id && target.classList.contains('edit-btn')) {
+                const dish = dishes.find(d => d.id === id);
+                if (dish) {
+                    formTitle.textContent = "Edit Dish";
+                    dishIdInput.value = dish.id;
+                    dishNameInput.value = dish.name;
+                    saveBtn.textContent = "Update Dish";
+                    
+                    Object.keys(tagContainers).forEach(category => {
+                        tagContainers[category].innerHTML = '';
+                        dish[category].forEach(item => renderTag(item, category, tagContainers[category]));
+                    });
                 }
-            } catch(error) {
-                console.error("Error deleting dish:", error);
-                showToast("Failed to delete dish.", "error");
+            } else if (id && target.classList.contains('delete-btn')) {
+                if (confirm("Are you sure you want to delete this dish?")) {
+                    deleteDoc(doc(db, 'users', currentUser.uid, 'dishes', id));
+                }
             }
+        });
+        
+        // Clear form
+        clearBtn.addEventListener('click', clearForm);
+        function clearForm() {
+            dishForm.reset();
+            dishIdInput.value = '';
+            formTitle.textContent = "Create New Dish";
+            saveBtn.textContent = "Save Dish";
+            Object.values(tagContainers).forEach(container => container.innerHTML = '');
         }
         
-        // --- UI UTILS ---
-        function showToast(message, type = 'success', duration = 3000) {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toast-message');
+        // Autocomplete logic
+        Object.keys(ingredientInputs).forEach(category => {
+            const input = ingredientInputs[category];
+            const autocompleteContainer = autocompleteContainers[category];
 
-            toast.classList.remove('bg-green-600', 'bg-red-600', 'bg-blue-600');
-            if (type === 'error') {
-                toast.classList.add('bg-red-600');
-            } else if (type === 'info') {
-                 toast.classList.add('bg-blue-600');
+            input.addEventListener('input', () => {
+                const value = input.value.trim().toLowerCase();
+                if (value.length < 1) {
+                    hideAutocomplete(category);
+                    return;
+                }
+                const suggestions = allIngredients[category]
+                    .filter(ing => ing.toLowerCase().startsWith(value))
+                    .slice(0, 5);
+                
+                if (suggestions.length > 0) {
+                    autocompleteContainer.innerHTML = suggestions.map(s => 
+                        `<div class="p-2 hover:bg-gray-500 cursor-pointer" data-category="${category}" data-value="${s}">${s}</div>`
+                    ).join('');
+                    autocompleteContainer.classList.remove('hidden');
+                } else {
+                    hideAutocomplete(category);
+                }
+            });
+
+            autocompleteContainer.addEventListener('click', (e) => {
+                if (e.target.dataset.value) {
+                    const { value, category } = e.target.dataset;
+                    const existingTags = Array.from(tagContainers[category].children).map(t => t.dataset.value);
+                    if (!existingTags.includes(value)) {
+                        renderTag(value, category, tagContainers[category]);
+                    }
+                    ingredientInputs[category].value = '';
+                    hideAutocomplete(category);
+                }
+            });
+        });
+        
+        function hideAutocomplete(category) {
+            autocompleteContainers[category].classList.add('hidden');
+        }
+
+        document.addEventListener('click', (e) => {
+            Object.keys(autocompleteContainers).forEach(category => {
+                if (!ingredientInputs[category].contains(e.target) && !autocompleteContainers[category].contains(e.target)) {
+                    hideAutocomplete(category);
+                }
+            });
+        });
+        
+        // Handle menu filter clicks
+        function handleMenuFilterClick(e) {
+            const tag = e.target;
+            const ingredient = tag.dataset.ingredient;
+            
+            if (selectedMenuFilters.includes(ingredient)) {
+                selectedMenuFilters = selectedMenuFilters.filter(item => item !== ingredient);
+                tag.classList.add('opacity-60');
             } else {
-                toast.classList.add('bg-green-600');
+                selectedMenuFilters.push(ingredient);
+                tag.classList.remove('opacity-60');
             }
             
-            toastMessage.textContent = message;
-            toast.classList.remove('opacity-0', 'translate-y-10');
-            
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-10');
-            }, duration);
+            filterAndRenderMenuDishes();
         }
-        
-        // Initial load
-        switchPage('database');
 
+        // --- Firestore Helper Functions ---
+        async function updateIngredientsMetadata(dishData) {
+            if (!currentUser) return;
+            const ingredientsDocRef = doc(db, 'users', currentUser.uid, 'ingredients', 'all');
+            
+            try {
+                await runTransaction(db, async (transaction) => {
+                    const ingredientsDoc = await transaction.get(ingredientsDocRef);
+                    let currentIngredients = { protein: [], side: [], veggie: [] };
+                    if (ingredientsDoc.exists()) {
+                        currentIngredients = ingredientsDoc.data();
+                    }
+                    
+                    let updated = false;
+                    Object.keys(dishData).forEach(category => {
+                        if (category === 'protein' || category === 'side' || category === 'veggie') {
+                           dishData[category].forEach(ingredient => {
+                                if (!currentIngredients[category].includes(ingredient)) {
+                                    currentIngredients[category].push(ingredient);
+                                    updated = true;
+                                }
+                           });
+                        }
+                    });
+
+                    if(updated) {
+                         transaction.set(ingredientsDocRef, currentIngredients);
+                    }
+                });
+            } catch (e) {
+                console.error("Transaction failed: ", e);
+            }
+        }
     </script>
 </body>
 </html>
