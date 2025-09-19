@@ -198,6 +198,21 @@
         </div>
     </div>
 
+    <script>
+        (function() {
+            let appId = localStorage.getItem('dishDashAppId');
+            if (!appId) {
+                // Basic UUID generator
+                appId = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+                localStorage.setItem('dishDashAppId', appId);
+            }
+            window.__app_id = appId;
+            console.log('Dish Dash App ID:', window.__app_id);
+        })();
+    </script>
     <script type="module">
         // Firebase Imports
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
