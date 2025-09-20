@@ -279,6 +279,7 @@
             const dishesCollection = collection(db, 'users', currentUser.uid, 'dishes');
             onSnapshot(query(dishesCollection), (snapshot) => {
                 dishes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                updateAllIngredientsFromDishes(dishes);
                 renderDishesLists();
                 filterAndRenderMenuDishes();
             });
@@ -449,7 +450,6 @@
                     await addDoc(dishesCollection, dishData);
                 }
                 
-                await updateIngredientsMetadata(dishData);
                 clearForm();
 
             } catch (error) {
@@ -559,38 +559,39 @@
         }
 
         // --- Firestore Helper Functions ---
-        async function updateIngredientsMetadata(dishData) {
+        async function updateAllIngredientsFromDishes(dishes) {
             if (!currentUser) return;
-            const ingredientsDocRef = doc(db, 'users', currentUser.uid, 'ingredients', 'all');
-            
-            try {
-                await runTransaction(db, async (transaction) => {
-                    const ingredientsDoc = await transaction.get(ingredientsDocRef);
-                    let currentIngredients = { protein: [], side: [], veggie: [] };
-                    if (ingredientsDoc.exists()) {
-                        currentIngredients = ingredientsDoc.data();
-                    }
-                    
-                    let updated = false;
-                    Object.keys(dishData).forEach(category => {
-                        if (category === 'protein' || category === 'side' || category === 'veggie') {
-                           dishData[category].forEach(ingredient => {
-                                if (!currentIngredients[category].includes(ingredient)) {
-                                    currentIngredients[category].push(ingredient);
-                                    updated = true;
-                                }
-                           });
-                        }
-                    });
 
-                    if(updated) {
-                         transaction.set(ingredientsDocRef, currentIngredients);
-                    }
-                });
-            } catch (e) {
-                console.error("Transaction failed: ", e);
+            const newAllIngredients = {
+                protein: new Set(),
+                side: new Set(),
+                veggie: new Set()
+            };
+
+            dishes.forEach(dish => {
+                (dish.protein || []).forEach(ing => newAllIngredients.protein.add(ing));
+                (dish.side || []).forEach(ing => newAllIngredients.side.add(ing));
+                (dish.veggie || []).forEach(ing => newAllIngredients.veggie.add(ing));
+            });
+
+            const ingredientsForFirestore = {
+                protein: Array.from(newAllIngredients.protein).sort(),
+                side: Array.from(newAllIngredients.side).sort(),
+                veggie: Array.from(newAllIngredients.veggie).sort()
+            };
+            
+            const comparableOldIngredients = {
+                protein: [...(allIngredients.protein || [])].sort(),
+                side: [...(allIngredients.side || [])].sort(),
+                veggie: [...(allIngredients.veggie || [])].sort(),
+            };
+
+            if (JSON.stringify(ingredientsForFirestore) !== JSON.stringify(comparableOldIngredients)) {
+                const ingredientsDocRef = doc(db, 'users', currentUser.uid, 'ingredients', 'all');
+                await setDoc(ingredientsDocRef, ingredientsForFirestore);
             }
         }
+
     </script>
 </body>
 </html>
