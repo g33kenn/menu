@@ -79,8 +79,8 @@
         <nav class="bg-gray-800 border-t border-b border-gray-700">
             <div class="max-w-7xl mx-auto px-4">
                 <div class="flex items-center justify-center h-16">
-                    <button id="btn-database" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Database</button>
-                    <button id="btn-menu" class="ml-4 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Menu</button>
+                    <button id="btn-menu" class="text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Menu</button>
+                    <button id="btn-database" class="ml-4 text-gray-300 hover:bg-gray-700 hover:text-white px-3 py-2 rounded-md text-sm font-medium">Database</button>
                 </div>
             </div>
         </nav>
@@ -148,6 +148,7 @@
                             <div id="menu-filters-side" class="flex flex-wrap gap-2"></div>
                             <h3 class="text-lg font-semibold mt-4 mb-2 text-green-400">Veggies</h3>
                             <div id="menu-filters-veggie" class="flex flex-wrap gap-2"></div>
+                            <button id="reset-filters-btn" class="mt-6 w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md">Reset</button>
                         </div>
                     </div>
                     <!-- Filtered Dishes -->
@@ -254,6 +255,7 @@
             side: document.getElementById('menu-filters-side'),
             veggie: document.getElementById('menu-filters-veggie')
         };
+        const resetFiltersBtn = document.getElementById('reset-filters-btn');
         
         // --- Authentication ---
         onAuthStateChanged(auth, (user) => {
@@ -306,7 +308,7 @@
         }
         btnDatabase.addEventListener('click', () => showPage('database'));
         btnMenu.addEventListener('click', () => showPage('menu'));
-        showPage('database'); // Default page
+        showPage('menu'); // Default page
 
 
         // --- Rendering Functions ---
@@ -574,6 +576,12 @@
             
             filterAndRenderMenuDishes();
         }
+
+        resetFiltersBtn.addEventListener('click', () => {
+            selectedMenuFilters = [];
+            renderMenuFilters();
+            filterAndRenderMenuDishes();
+        });
 
         // --- Firestore Helper Functions ---
         async function updateAllIngredientsFromDishes(dishes) {
