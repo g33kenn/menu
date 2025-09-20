@@ -285,6 +285,8 @@
             const dishesCollection = collection(db, 'users', currentUser.uid, 'dishes');
             onSnapshot(query(dishesCollection), (snapshot) => {
                 dishes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                // Sort dishes alphabetically by name
+                dishes.sort((a, b) => a.name.localeCompare(b.name));
                 updateAllIngredientsFromDishes(dishes);
                 renderDishesLists();
                 filterAndRenderMenuDishes();
