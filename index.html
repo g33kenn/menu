@@ -50,6 +50,10 @@
             font-size: 12px;
             line-height: 1;
         }
+        .autocomplete-active {
+            background-color: #374151; /* A slightly lighter gray for highlight */
+            color: #f3f4f6;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -509,20 +513,24 @@
         }
         
         // Autocomplete logic
+        let autocompleteFocus = -1;
+
         Object.keys(ingredientInputs).forEach(category => {
             const input = ingredientInputs[category];
             const autocompleteContainer = autocompleteContainers[category];
 
-            input.addEventListener('input', () => {
-                const value = input.value.trim().toLowerCase();
+            input.addEventListener('input', function() {
+                const value = this.value.trim().toLowerCase();
                 if (value.length < 1) {
                     hideAutocomplete(category);
                     return;
                 }
-                const suggestions = allIngredients[category]
+
+                const suggestions = (allIngredients[category] || [])
                     .filter(ing => ing.toLowerCase().startsWith(value))
                     .slice(0, 5);
                 
+                autocompleteFocus = -1;
                 if (suggestions.length > 0) {
                     autocompleteContainer.innerHTML = suggestions.map(s => 
                         `<div class="p-2 hover:bg-gray-500 cursor-pointer" data-category="${category}" data-value="${s}">${s}</div>`
@@ -533,21 +541,63 @@
                 }
             });
 
+            input.addEventListener('keydown', function(e) {
+                let items = autocompleteContainer.getElementsByTagName('div');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    autocompleteFocus++;
+                    addActive(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    autocompleteFocus--;
+                    addActive(items);
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    if (autocompleteFocus > -1) {
+                        e.preventDefault();
+                        items[autocompleteFocus].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideAutocomplete(category);
+                }
+            });
+
             autocompleteContainer.addEventListener('click', (e) => {
                 if (e.target.dataset.value) {
                     const { value, category } = e.target.dataset;
-                    const existingTags = Array.from(tagContainers[category].children).map(t => t.dataset.value);
-                    if (!existingTags.includes(value)) {
-                        renderTag(value, category, tagContainers[category]);
-                    }
+                    addIngredientTag(value, category);
                     ingredientInputs[category].value = '';
                     hideAutocomplete(category);
                 }
             });
         });
+
+        function addIngredientTag(value, category) {
+            const existingTags = Array.from(tagContainers[category].children).map(t => t.dataset.value);
+            if (!existingTags.includes(value)) {
+                renderTag(value, category, tagContainers[category]);
+            }
+        }
         
+        function addActive(items) {
+            if (!items || items.length === 0) return false;
+            removeActive(items);
+            if (autocompleteFocus >= items.length) autocompleteFocus = 0;
+            if (autocompleteFocus < 0) autocompleteFocus = (items.length - 1);
+            items[autocompleteFocus].classList.add("autocomplete-active");
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove("autocomplete-active");
+            }
+        }
+
         function hideAutocomplete(category) {
-            autocompleteContainers[category].classList.add('hidden');
+            if (autocompleteContainers[category]) {
+                autocompleteContainers[category].classList.add('hidden');
+            }
         }
 
         document.addEventListener('click', (e) => {
