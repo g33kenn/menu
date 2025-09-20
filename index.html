@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dish Database & Menu Planner</title>
+    <title>WHAT'S COOKING?</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
@@ -50,6 +50,10 @@
             font-size: 12px;
             line-height: 1;
         }
+        .autocomplete-active {
+            background-color: #374151; /* A slightly lighter gray for highlight */
+            color: #f3f4f6;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
@@ -57,7 +61,7 @@
     <!-- Login View -->
     <div id="login-view" class="flex items-center justify-center h-screen">
         <div class="text-center p-8 bg-gray-800 rounded-lg shadow-xl">
-            <h1 class="text-3xl font-bold mb-4 text-white">Dish Planner</h1>
+            <h1 class="text-3xl font-bold mb-4 text-white">WHAT'S COOKING? 🍜</h1>
             <p class="text-gray-400 mb-6">Sign in to manage your personal dish database.</p>
             <button id="login-btn" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg flex items-center justify-center mx-auto">
                 <svg class="w-5 h-5 mr-2" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"></path><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.42-4.55H24v8.51h12.8c-.57 3.02-2.31 5.45-4.92 7.18l7.98 6.19c4.63-4.28 7.3-10.39 7.3-17.33z"></path><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"></path><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.98-6.19c-2.11 1.45-4.8 2.3-7.91 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"></path><path fill="none" d="M0 0h48v48H0z"></path></svg>
@@ -69,7 +73,7 @@
     <!-- Main App View -->
     <div id="app-view" class="hidden h-screen flex flex-col">
         <header class="bg-gray-800 shadow-md p-4 flex justify-between items-center">
-            <h1 class="text-xl font-bold text-white">Dish Planner</h1>
+            <h1 class="text-xl font-bold text-white">WHAT'S COOKING? 🍜</h1>
             <div class="flex items-center">
                  <div id="user-info" class="text-sm text-gray-400 mr-4"></div>
                 <button id="logout-btn" class="bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg text-sm">Logout</button>
@@ -139,8 +143,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
                     <!-- Ingredient Filters -->
                     <div class="md:col-span-1 lg:col-span-1 bg-gray-800 p-6 rounded-lg shadow-lg">
-                        <h2 class="text-2xl font-bold mb-4 text-white">Available Ingredients</h2>
-                        <p class="text-sm text-gray-400 mb-4">Click ingredients you have to find what you can cook.</p>
+                        <h2 class="text-2xl font-bold mb-4 text-white">Ingredients 📋</h2>
                         <div>
                             <h3 class="text-lg font-semibold mt-4 mb-2 text-red-400">Proteins</h3>
                             <div id="menu-filters-protein" class="flex flex-wrap gap-2"></div>
@@ -148,13 +151,13 @@
                             <div id="menu-filters-side" class="flex flex-wrap gap-2"></div>
                             <h3 class="text-lg font-semibold mt-4 mb-2 text-green-400">Veggies</h3>
                             <div id="menu-filters-veggie" class="flex flex-wrap gap-2"></div>
-                            <button id="reset-filters-btn" class="mt-6 w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-2 px-4 rounded-md">Reset</button>
+                            <button id="reset-filters-btn" class="mt-6 w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded-md">Reset</button>
                         </div>
                     </div>
                     <!-- Filtered Dishes -->
                     <div class="md:col-span-2 lg:col-span-3 bg-gray-800 p-6 rounded-lg shadow-lg">
                          <div class="flex justify-between items-center mb-4">
-                            <h2 class="text-2xl font-bold text-white">Available Dishes</h2>
+                            <h2 class="text-2xl font-bold text-white">You can cook 🍛</h2>
                             <div id="dish-count" class="text-sm text-gray-400"></div>
                         </div>
                         <div id="menu-dishes-list" class="space-y-3 max-h-[70vh] overflow-y-auto pr-2">
@@ -509,20 +512,24 @@
         }
         
         // Autocomplete logic
+        let autocompleteFocus = -1;
+
         Object.keys(ingredientInputs).forEach(category => {
             const input = ingredientInputs[category];
             const autocompleteContainer = autocompleteContainers[category];
 
-            input.addEventListener('input', () => {
-                const value = input.value.trim().toLowerCase();
+            input.addEventListener('input', function() {
+                const value = this.value.trim().toLowerCase();
                 if (value.length < 1) {
                     hideAutocomplete(category);
                     return;
                 }
-                const suggestions = allIngredients[category]
+
+                const suggestions = (allIngredients[category] || [])
                     .filter(ing => ing.toLowerCase().startsWith(value))
                     .slice(0, 5);
                 
+                autocompleteFocus = -1;
                 if (suggestions.length > 0) {
                     autocompleteContainer.innerHTML = suggestions.map(s => 
                         `<div class="p-2 hover:bg-gray-500 cursor-pointer" data-category="${category}" data-value="${s}">${s}</div>`
@@ -533,21 +540,63 @@
                 }
             });
 
+            input.addEventListener('keydown', function(e) {
+                let items = autocompleteContainer.getElementsByTagName('div');
+                if (items.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    autocompleteFocus++;
+                    addActive(items);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    autocompleteFocus--;
+                    addActive(items);
+                } else if (e.key === 'Enter' || e.key === 'Tab') {
+                    if (autocompleteFocus > -1) {
+                        e.preventDefault();
+                        items[autocompleteFocus].click();
+                    }
+                } else if (e.key === 'Escape') {
+                    hideAutocomplete(category);
+                }
+            });
+
             autocompleteContainer.addEventListener('click', (e) => {
                 if (e.target.dataset.value) {
                     const { value, category } = e.target.dataset;
-                    const existingTags = Array.from(tagContainers[category].children).map(t => t.dataset.value);
-                    if (!existingTags.includes(value)) {
-                        renderTag(value, category, tagContainers[category]);
-                    }
+                    addIngredientTag(value, category);
                     ingredientInputs[category].value = '';
                     hideAutocomplete(category);
                 }
             });
         });
+
+        function addIngredientTag(value, category) {
+            const existingTags = Array.from(tagContainers[category].children).map(t => t.dataset.value);
+            if (!existingTags.includes(value)) {
+                renderTag(value, category, tagContainers[category]);
+            }
+        }
         
+        function addActive(items) {
+            if (!items || items.length === 0) return false;
+            removeActive(items);
+            if (autocompleteFocus >= items.length) autocompleteFocus = 0;
+            if (autocompleteFocus < 0) autocompleteFocus = (items.length - 1);
+            items[autocompleteFocus].classList.add("autocomplete-active");
+        }
+
+        function removeActive(items) {
+            for (let i = 0; i < items.length; i++) {
+                items[i].classList.remove("autocomplete-active");
+            }
+        }
+
         function hideAutocomplete(category) {
-            autocompleteContainers[category].classList.add('hidden');
+            if (autocompleteContainers[category]) {
+                autocompleteContainers[category].classList.add('hidden');
+            }
         }
 
         document.addEventListener('click', (e) => {
