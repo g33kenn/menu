@@ -37,6 +37,7 @@
         .tag-protein { background-color: #ef4444; color: white; }
         .tag-side { background-color: #f59e0b; color: white; }
         .tag-veggie { background-color: #22c55e; color: white; }
+        .tag-unselected { background-color: #4b5563; color: #d1d5db; }
         .tag-remove {
             margin-left: 8px;
             width: 16px;
@@ -364,8 +365,15 @@
                 ingredients.sort().forEach(ingredient => {
                     const tag = document.createElement('div');
                     tag.textContent = ingredient;
-                    tag.className = `tag tag-${category} opacity-60 hover:opacity-100 transition-opacity`;
+                    const isSelected = selectedMenuFilters.includes(ingredient);
+                    tag.className = `tag hover:opacity-100 transition-opacity`;
+                    if (isSelected) {
+                        tag.classList.add(`tag-${category}`);
+                    } else {
+                        tag.classList.add('tag-unselected');
+                    }
                     tag.dataset.ingredient = ingredient;
+                    tag.dataset.category = category;
                     tag.addEventListener('click', handleMenuFilterClick);
                     container.appendChild(tag);
                 });
@@ -391,12 +399,18 @@
             filteredDishes.forEach(dish => {
                 const div = document.createElement('div');
                 div.className = 'bg-gray-700 p-4 rounded-lg';
-                 div.innerHTML = `
+                 const getDishIngredientTag = (ingredient, category) => {
+                    const isSelected = selectedMenuFilters.includes(ingredient);
+                    const colorClass = isSelected ? `tag-${category}` : 'tag-unselected';
+                    return `<span class="tag ${colorClass}">${ingredient}</span>`;
+                };
+
+                div.innerHTML = `
                     <h4 class="font-bold text-lg text-white">${dish.name}</h4>
                     <div class="flex flex-wrap mt-2">
-                        ${dish.protein.map(p => `<span class="tag tag-protein">${p}</span>`).join('')}
-                        ${dish.side.map(s => `<span class="tag tag-side">${s}</span>`).join('')}
-                        ${dish.veggie.map(v => `<span class="tag tag-veggie">${v}</span>`).join('')}
+                        ${dish.protein.map(p => getDishIngredientTag(p, 'protein')).join('')}
+                        ${dish.side.map(s => getDishIngredientTag(s, 'side')).join('')}
+                        ${dish.veggie.map(v => getDishIngredientTag(v, 'veggie')).join('')}
                     </div>
                 `;
                 menuDishesListContainer.appendChild(div);
@@ -546,13 +560,16 @@
         function handleMenuFilterClick(e) {
             const tag = e.target;
             const ingredient = tag.dataset.ingredient;
+            const category = tag.dataset.category;
             
             if (selectedMenuFilters.includes(ingredient)) {
                 selectedMenuFilters = selectedMenuFilters.filter(item => item !== ingredient);
-                tag.classList.add('opacity-60');
+                tag.classList.remove(`tag-${category}`);
+                tag.classList.add('tag-unselected');
             } else {
                 selectedMenuFilters.push(ingredient);
-                tag.classList.remove('opacity-60');
+                tag.classList.add(`tag-${category}`);
+                tag.classList.remove('tag-unselected');
             }
             
             filterAndRenderMenuDishes();
