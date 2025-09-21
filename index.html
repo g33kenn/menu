@@ -388,18 +388,27 @@
         }
 
         function filterAndRenderMenuDishes() {
-            let filteredDishes = dishes;
+            let filteredDishes = [];
             if (selectedMenuFilters.length > 0) {
-                filteredDishes = dishes.filter(dish => {
+                filteredDishes = dishes.map(dish => {
                     const dishIngredients = [...dish.protein, ...dish.side, ...dish.veggie];
-                    return selectedMenuFilters.every(filter => dishIngredients.includes(filter));
-                });
+                    const matchCount = selectedMenuFilters.filter(filter => dishIngredients.includes(filter)).length;
+                    return { ...dish, matchCount };
+                }).filter(dish => dish.matchCount > 0);
+
+                // Sort by match count descending
+                filteredDishes.sort((a, b) => b.matchCount - a.matchCount);
             }
+
             menuDishesListContainer.innerHTML = '';
             dishCount.textContent = `${filteredDishes.length} of ${dishes.length} dishes shown`;
 
             if (filteredDishes.length === 0) {
-                menuDishesListContainer.innerHTML = `<p class="text-gray-400">No dishes match your selected ingredients.</p>`;
+                if (selectedMenuFilters.length > 0) {
+                    menuDishesListContainer.innerHTML = `<p class="text-gray-400">No dishes match your selected ingredients.</p>`;
+                } else {
+                    menuDishesListContainer.innerHTML = `<p class="text-gray-400">Select ingredients to see what you can cook.</p>`;
+                }
                 return;
             }
             
